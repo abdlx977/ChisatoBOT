@@ -161,3 +161,17 @@ model GroupAuditLog {
 
   @@index([groupId, createdAt])
 }
+model GroupAura {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  groupId    String
+  userId     String
+  aura       Int     @default(0)
+  rank       String  @default("pawn")
+  title      String?
+  weapon     String?
+  armor      String?
+  protection String?
+
+  @@unique([groupId, userId])
+  @@index([groupId, aura])
+}
