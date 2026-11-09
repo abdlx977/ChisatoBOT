@@ -196,8 +196,16 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
         ? stanza.content.find((node: any) => node?.tag === "error")
         : undefined;
 
+    const errorCode = String(errorNode?.attrs?.code ?? "");
+    const errorText = String(errorNode?.attrs?.text ?? "");
+
+    if (errorCode === "429" || errorText === "rate-overlimit") {
+        pairingRateLimited = true;
+        this.logger.connect("WhatsApp rate limit detected. Automatic reconnect disabled.");
+    }
+
     this.logger.connect(
-        `WhatsApp IQ error: code=${errorNode?.attrs?.code ?? "unknown"}, text=${errorNode?.attrs?.text ?? "unknown"}, id=${stanza?.attrs?.id ?? "unknown"}`
+        `WhatsApp IQ error: code=${errorCode || "unknown"}, text=${errorText || "unknown"}, id=${stanza?.attrs?.id ?? "unknown"}`
     );
 });
 
@@ -220,9 +228,10 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
                 }
             });
         }
-
+let pairingRateLimited = false;
         const scheduleReconnect = (label: string, opts?: { backoff?: boolean }): void => {
-            if (this.reconnectTimer) return;
+            if (pairingRateLimited) return;
+if (this.reconnectTimer) return;
             const delay =
                 opts?.backoff === false
                     ? RECONNECT_BASE_DELAY_MS
