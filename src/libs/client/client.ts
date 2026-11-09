@@ -191,6 +191,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
             logger: Pino({ level: "silent" }),
             cachedGroupMetadata: async (jid: string) => MessageContextBuilder.getCachedGroupMeta(jid),
         });
+        let pairingRateLimited = false;
         Chisato.ws.on("CB:iq,type:error", (stanza: any) => {
     const errorNode = Array.isArray(stanza?.content)
         ? stanza.content.find((node: any) => node?.tag === "error")
@@ -228,7 +229,6 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
                 }
             });
         }
-let pairingRateLimited = false;
         const scheduleReconnect = (label: string, opts?: { backoff?: boolean }): void => {
             if (pairingRateLimited) return;
 if (this.reconnectTimer) return;
