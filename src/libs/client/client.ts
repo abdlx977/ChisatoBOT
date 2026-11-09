@@ -199,7 +199,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
                 await delay(5000)
                 try {
                     this.logger.connect(`Requesting pairing code for +${pairingPhoneNumber}...`);
-                    const code = await _requestPairingCode(pairingPhoneNumber, "CHISATOX");
+                    const code = await _requestPairingCode(pairingPhoneNumber);
                     const formattedCode = code?.match(/.{1,4}/g)?.join("-") || code;
                     this.logger.connect("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
                     this.logger.connect(`Pairing Code : ${formattedCode}`);
