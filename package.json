@@ -5,7 +5,7 @@
     "description": "WhatsApp Bot Multi-Device using Baileys",
     "main": "start.js",
     "engines": {
-  "node": "22.12.0"
+"node": ">=22.12.0 <23" 
 }, 
     "scripts": {
         "build": "tsc --build && node scripts/add-js-extensions.cjs && npm run web:build",
