@@ -88,7 +88,7 @@ logger.connect("Connecting to database...");
         const Chisato = new Client({
             session: "multi",
             syncFullHistory: false,
-            browser: ['Mac OS', 'Chrome', 'Chrome 114.0.5735.198'],
+            browser: ['Mac OS', 'Chrome', '14.4.1'],
             logger: Pino({ level: "silent" }).child({ level: "silent" }),
         });
 
