@@ -252,6 +252,11 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
             } else if (connection === "close") {
                 let reason = new Boom(lastDisconnect?.error)?.output
                     ?.statusCode;
+                const disconnectError = lastDisconnect?.error;
+this.logger.status(
+    `${reason || "Unknown"}`,
+    `Disconnect details: ${disconnectError instanceof Error ? disconnectError.message : String(disconnectError ?? "No error message")}`
+);
                 switch (reason) {
                     case DisconnectReason.restartRequired:
                         // Normal post-pairing restart — reconnect fast, no backoff.
