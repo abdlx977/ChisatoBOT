@@ -191,6 +191,15 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
             logger: Pino({ level: "silent" }),
             cachedGroupMetadata: async (jid: string) => MessageContextBuilder.getCachedGroupMeta(jid),
         });
+        Chisato.ws.on("CB:iq,type:error", (stanza: any) => {
+    const errorNode = Array.isArray(stanza?.content)
+        ? stanza.content.find((node: any) => node?.tag === "error")
+        : undefined;
+
+    this.logger.connect(
+        `WhatsApp IQ error: code=${errorNode?.attrs?.code ?? "unknown"}, text=${errorNode?.attrs?.text ?? "unknown"}, id=${stanza?.attrs?.id ?? "unknown"}`
+    );
+});
 
         const _requestPairingCode = Chisato.requestPairingCode;
 
