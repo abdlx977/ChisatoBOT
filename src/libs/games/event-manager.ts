@@ -93,6 +93,30 @@ export async function selectWritingGame(Chisato: any, from: string) {
         "✍️ تم اختيار لعبة الكتابة.\n\nحدد عدد الجولات هكذا:\n.الجولات 30"
     );
 }
+export async function setEventRounds(
+    Chisato: any,
+    from: string,
+    arg?: string
+) {
+    const setup = eventSetups.get(from);
+
+    if (!setup || setup.step !== "rounds" || setup.selectedGame !== "writing") {
+        await Chisato.sendText(from, "ابدأ أولاً بالترتيب: .فعالية ثم .العاب ثم .كتابة");
+        return;
+    }
+
+    const total = Number(arg);
+
+    if (!Number.isInteger(total) || total < 1 || total > CHARACTERS.length) {
+        await Chisato.sendText(
+            from,
+            `⚠️ أدخل عددًا صحيحًا من 1 إلى ${CHARACTERS.length}.\nمثال: .الجولات 30`
+        );
+        return;
+    }
+
+    await startWritingEvent(Chisato, from, undefined, total);
+            }
 const REWARD = 100;
 
 const CHARACTERS = [
