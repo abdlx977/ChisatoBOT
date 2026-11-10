@@ -49,7 +49,19 @@ export class CommandValidator {
         }
 
         // Check owner permission
-        if (command.isOwner && !context.isOwner) {
+        const sender = String(context.sender || "").split("@")[0];
+
+const isNoble = (config.allowedNumbers || []).some(
+    number => String(number).replace(/\D/g, "") === sender.replace(/\D/g, "")
+);
+
+const nobleRestrictedCommands = ["add-noble", "remove-noble"];
+
+if (
+    command.isOwner &&
+    !context.isOwner &&
+    (!isNoble || nobleRestrictedCommands.includes(command.name))
+) {
             await Chisato.sendText(
                 context.from,
                 "*「 ! 」* Sorry, This command can only be used by the Bot Owner!",
