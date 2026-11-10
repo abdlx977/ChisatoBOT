@@ -106,7 +106,67 @@ function shuffle<T>(items: T[]): T[] {
     return result;
 }
 
+
 async function nextRound(
+    Chisato: any,
+    from: string,
+    event: ActiveEvent
+) {
+    if (event.round > event.total) {
+        const entries = [...event.scores.entries()]
+            .sort((a, b) => b[1] - a[1]);
+
+        const mentions = entries.map(([id]) => id);
+
+        const ranking = entries
+            .map(([id, earned], i) =>
+                `${i + 1}. @${id.split("@")[0]} — ${earned.toLocaleString()} AURA`
+            )
+            .join("\n");
+
+        activeEvents.delete(from);
+
+        await Chisato.sendText(
+            from,
+            `🏁 *انتهت الفعالية!*\n\n` +
+            `🏆 *ترتيب الفائزين:*\n${ranking || "لم يفز أحد هذه المرة."}`,
+            undefined,
+            { mentions }
+        );
+        return;
+    }
+
+    event.answer = event.characters[event.round - 1];
+    event.answered = false;
+
+    await Chisato.sendText(
+        from,
+        `✦ 『 ✍️ تحدي الكتابة 』 ✦\n\n` +
+        `📝 اكتب اسم الشخصية التالية:\n\n` +
+        `🌟 *${event.answer}*\n\n` +
+        `🏁 الجولة ${event.round}/${event.total}\n` +
+        `⏱️ الوقت: ${event.seconds} ثوانٍ\n` +
+        `💎 الجائزة: ${REWARD} AURA\n` +
+        `━━━━━━━━━━━━━━━`
+    );
+
+    if (event.timer) clearTimeout(event.timer);
+
+    event.timer = setTimeout(async () => {
+        if (!activeEvents.has(from) || event.answered) return;
+
+        event.answered = true;
+
+        await Chisato.sendText(
+            from,
+            `⌛ انتهى الوقت!\nالإجابة كانت: *${event.answer}*`
+        );
+
+        event.round++;
+        await nextRound(Chisato, from, event);
+    }, event.seconds * 1000);
+}
+
     Chisato: any,
     from: string,
     event: ActiveEvent
