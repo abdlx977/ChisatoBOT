@@ -116,7 +116,7 @@ export async function setEventRounds(
     }
 
     await startWritingEvent(Chisato, from, undefined, total);
-            }
+            
 const REWARD = 100;
 
 const CHARACTERS = [
