@@ -16,6 +16,7 @@ export type CommandOverride = {
 
 export interface BotConfig {
     ownerNumber: string[];
+    allowedNumbers: string[];
     teamNumber: string[];
     timeZone: string;
     prefix: string;
