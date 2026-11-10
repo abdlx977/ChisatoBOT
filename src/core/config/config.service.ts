@@ -82,6 +82,9 @@ class ConfigService {
         }
         if (!this.config.commandOverrides) {
             this.config.commandOverrides = {};
+            if (!Array.isArray(this.config.allowedNumbers)) {
+    this.config.allowedNumbers = [];
+            }
         }
     }
 
