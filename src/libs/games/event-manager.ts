@@ -252,46 +252,7 @@ async function nextRound(
     }, event.seconds * 1000);
 }
 
-export async function startWritingEvent(
-    Chisato: any,
-    from: string,
-    message: any
-) {
-    if (activeEvents.has(from)) {
-        await Chisato.sendText(
-            from,
-            "⚠️ توجد فعالية جارية بالفعل.",
-            message
-        );
-        return;
-    }
-
-    const event: ActiveEvent = {
-        round: 1,
-        total: 10,
-        seconds: 8,
-        answer: "",
-        characters: shuffle(CHARACTERS).slice(0, 10),
-        scores: new Map(),
-        timer: null,
-        answered: false,
-    };
-
-    activeEvents.set(from, event);
-
-    await Chisato.sendText(
-        from,
-        `🎉 *بدأ تحدي الكتابة!*\n` +
-        `أسرع شخص يكتب اسم الشخصية يفوز.\n` +
-        `💎 كل فوز = ${REWARD} AURA\n` +
-        `🏁 عدد الجولات: ${event.total}\n` +
-        `⏱️ مدة الجولة: ${event.seconds} ثوانٍ`
-    );
-
-    await nextRound(Chisato, from, event);
-}
-
-export async function stopEvent(Chisato: any, from: string) {
+(Chisato: any, from: string) {
     const event = activeEvents.get(from);
 
     if (!event) {
