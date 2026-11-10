@@ -134,8 +134,8 @@ export async function selectFlagsGame(Chisato: any, from: string) {
         from,
         "🏳️ تم اختيار لعبة أعلام الدول.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
     );
-        {
-    
+}
+
 const REWARD = 100;
 
 const CHARACTERS = [
