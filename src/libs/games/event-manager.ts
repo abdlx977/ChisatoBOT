@@ -309,6 +309,24 @@ export async function handleEventMessage(
     sender: string,
     body: string
 ): Promise<boolean> {
+    const setup = eventSetups.get(from);
+
+if (setup?.step === "rounds" && setup.selectedGame === "writing") {
+    if (sender !== setup.owner) return false;
+
+    const choices: Record<string, number> = {
+        "1": 10,
+        "2": 20,
+        "3": 30,
+    };
+
+    const selected = choices[body.trim()];
+
+    if (!selected) return false;
+
+    await startWritingEvent(Chisato, from, undefined, selected);
+    return true;
+}
     const event = activeEvents.get(from);
 
     if (!event || !body || body.startsWith(".")) return false;
