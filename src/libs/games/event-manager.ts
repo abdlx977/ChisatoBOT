@@ -18,8 +18,47 @@ type EventSetup = {
     selectedGame?: "writing";
 };
 
-const eventSetups = new Map<string, EventSetup>();
+export async function startWritingEvent(
+    Chisato: any,
+    from: string,
+    message: any,
+    total: number
+) {
+    if (activeEvents.has(from)) {
+        await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.", message);
+        return;
+    }
 
+    const roundCount = Math.max(
+        1,
+        Math.min(Math.floor(total), CHARACTERS.length)
+    );
+
+    const event: ActiveEvent = {
+        round: 1,
+        total: roundCount,
+        seconds: 8,
+        answer: "",
+        characters: shuffle(CHARACTERS).slice(0, roundCount),
+        scores: new Map(),
+        timer: null,
+        answered: false,
+    };
+
+    eventSetups.delete(from);
+    activeEvents.set(from, event);
+
+    await Chisato.sendText(
+        from,
+        `🎉 *بدأ تحدي الكتابة!*\n` +
+        `أسرع شخص يكتب اسم الشخصية يفوز.\n` +
+        `💎 كل فوز = ${REWARD} AURA\n` +
+        `🏁 عدد الجولات: ${event.total}\n` +
+        `⏱️ مدة الجولة: ${event.seconds} ثوانٍ`
+    );
+
+    await nextRound(Chisato, from, event);
+}
 export async function beginEventSetup(Chisato: any, from: string) {
     if (activeEvents.has(from)) {
         await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.");
