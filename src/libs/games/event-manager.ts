@@ -3,12 +3,31 @@ import { databaseService } from "../../infrastructure/database/database.service"
 
 type EventSetup = {
     step: "games" | "game" | "rounds";
-    selectedGame?: "writing";
+    selectedGame?: "writing" | "flags";
     owner: string;
+};
+
+type FlagQuestion = {
+    country: string;
+    code: string;
+    aliases: string[];
 };
 
 const eventSetups = new Map<string, EventSetup>();
 type ActiveEvent = {
+    game?: "writing" | "flags";
+    round: number;
+    total: number;
+    seconds: number;
+    answer: string;
+    acceptedAnswers?: string[];
+    imageUrl?: string;
+    characters: string[];
+    flags?: FlagQuestion[];
+    scores: Map<string, number>;
+    timer: ReturnType<typeof setTimeout> | null;
+    answered: boolean;
+};
     round: number;
     total: number;
     seconds: number;
@@ -79,8 +98,10 @@ export async function showEventGames(Chisato: any, from: string) {
     const setup = eventSetups.get(from);
 
     if (!setup || setup.step !== "games") {
-        await Chisato.sendText(from, "ابدأ أولاً بكتابة .فعالية");
-        return;
+        await Chisato.sendText(
+    from,
+    "🎮 *الألعاب المتاحة:*\n\n✍️ الكتابة\n🏳️ أعلام الدول\n\nاكتب:\n.كتابة أو .دول"
+);
     }
 
     setup.step = "game";
@@ -91,6 +112,22 @@ export async function showEventGames(Chisato: any, from: string) {
 }
 
 export async function selectWritingGame(Chisato: any, from: string) {
+    export async function selectFlagsGame(Chisato: any, from: string) {
+    const setup = eventSetups.get(from);
+
+    if (!setup || setup.step !== "game") {
+        await Chisato.sendText(from, "اكتب .فعالية ثم .العاب أولاً.");
+        return;
+    }
+
+    setup.step = "rounds";
+    setup.selectedGame = "flags";
+
+    await Chisato.sendText(
+        from,
+        "🏳️ تم اختيار لعبة أعلام الدول.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
+    );
+    }
     const setup = eventSetups.get(from);
 
     if (!setup || setup.step !== "game") {
@@ -205,6 +242,48 @@ const CHARACTERS = [
 "تاكاسوجي", "كاموي", "كاتسورا",
 "هيجيكاتا", "أوكيتا", "كوندو",
 "ساروتوبي", "تسوكويو", "ساكاموتو",
+];
+const FLAG_QUESTIONS: FlagQuestion[] = [
+    { country: "سوريا", code: "sy", aliases: ["سوريا", "الجمهورية العربية السورية"] },
+    { country: "الأردن", code: "jo", aliases: ["الأردن", "اردن"] },
+    { country: "السعودية", code: "sa", aliases: ["السعودية", "المملكة العربية السعودية"] },
+    { country: "فلسطين", code: "ps", aliases: ["فلسطين"] },
+    { country: "مصر", code: "eg", aliases: ["مصر"] },
+    { country: "العراق", code: "iq", aliases: ["العراق"] },
+    { country: "لبنان", code: "lb", aliases: ["لبنان"] },
+    { country: "الإمارات", code: "ae", aliases: ["الإمارات", "الامارات", "الإمارات العربية المتحدة"] },
+    { country: "قطر", code: "qa", aliases: ["قطر"] },
+    { country: "الكويت", code: "kw", aliases: ["الكويت"] },
+    { country: "البحرين", code: "bh", aliases: ["البحرين"] },
+    { country: "عُمان", code: "om", aliases: ["عمان"] },
+    { country: "اليمن", code: "ye", aliases: ["اليمن"] },
+    { country: "تركيا", code: "tr", aliases: ["تركيا"] },
+    { country: "ألمانيا", code: "de", aliases: ["ألمانيا", "المانيا"] },
+    { country: "فرنسا", code: "fr", aliases: ["فرنسا"] },
+    { country: "إيطاليا", code: "it", aliases: ["إيطاليا", "ايطاليا"] },
+    { country: "إسبانيا", code: "es", aliases: ["إسبانيا", "اسبانيا"] },
+    { country: "المملكة المتحدة", code: "gb", aliases: ["بريطانيا", "المملكة المتحدة", "انجلترا", "إنجلترا"] },
+    { country: "الولايات المتحدة", code: "us", aliases: ["أمريكا", "امريكا", "الولايات المتحدة"] },
+    { country: "كندا", code: "ca", aliases: ["كندا"] },
+    { country: "البرازيل", code: "br", aliases: ["البرازيل"] },
+    { country: "الأرجنتين", code: "ar", aliases: ["الأرجنتين", "الارجنتين"] },
+    { country: "اليابان", code: "jp", aliases: ["اليابان"] },
+    { country: "الصين", code: "cn", aliases: ["الصين"] },
+    { country: "كوريا الجنوبية", code: "kr", aliases: ["كوريا الجنوبية"] },
+    { country: "الهند", code: "in", aliases: ["الهند"] },
+    { country: "روسيا", code: "ru", aliases: ["روسيا"] },
+    { country: "المغرب", code: "ma", aliases: ["المغرب"] },
+    { country: "الجزائر", code: "dz", aliases: ["الجزائر"] },
+    { country: "تونس", code: "tn", aliases: ["تونس"] },
+    { country: "ليبيا", code: "ly", aliases: ["ليبيا"] },
+    { country: "السودان", code: "sd", aliases: ["السودان"] },
+    { country: "أستراليا", code: "au", aliases: ["أستراليا", "استراليا"] },
+    { country: "المكسيك", code: "mx", aliases: ["المكسيك"] },
+    { country: "البرتغال", code: "pt", aliases: ["البرتغال"] },
+    { country: "هولندا", code: "nl", aliases: ["هولندا"] },
+    { country: "السويد", code: "se", aliases: ["السويد"] },
+    { country: "النرويج", code: "no", aliases: ["النرويج"] },
+    { country: "سويسرا", code: "ch", aliases: ["سويسرا"] },
 ];
 
 function normalize(value: string): string {
