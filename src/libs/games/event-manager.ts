@@ -1,24 +1,19 @@
 
 import { databaseService } from "../../infrastructure/database/database.service";
 
-type ActiveEvent = {
-    round: number;
-    total: number;
-    seconds: number;
-    answer: string;
-    characters: string[];
-    scores: Map<string, number>;
-    timer: ReturnType<typeof setTimeout> | null;
-    answered: boolean;
-};
-
-const activeEvents = new Map<string, ActiveEvent>();
 type EventSetup = {
     step: "games" | "game" | "rounds";
     selectedGame?: "writing";
 };
 
- {
+const eventSetups = new Map<string, EventSetup>();
+
+export async function startWritingEvent(
+    Chisato: any,
+    from: string,
+    message: any,
+    total: number
+) {
     if (activeEvents.has(from)) {
         await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.", message);
         return;
@@ -54,7 +49,6 @@ type EventSetup = {
 
     await nextRound(Chisato, from, event);
 }
-export async function beginEventSetup(Chisato: any, from: string) {
     if (activeEvents.has(from)) {
         await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.");
         return;
