@@ -167,6 +167,7 @@ async function nextRound(
     }, event.seconds * 1000);
 }
 
+export async function startWritingEvent(
     Chisato: any,
     from: string,
     message: any
