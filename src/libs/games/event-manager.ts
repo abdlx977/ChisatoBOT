@@ -276,7 +276,7 @@ async function nextRound(
     }, event.seconds * 1000);
 }
 
-(Chisato: any, from: string) {
+export async function stopEvent(Chisato: any, from: string) {
     const event = activeEvents.get(from);
 
     if (!event) {
