@@ -50,10 +50,19 @@ export class CommandValidator {
         }
 
         // Check owner permission
-        const sender = String(context.sender || "").split("@")[0];
+        let senderNumber = String(context.sender || "").split("@")[0];
+
+try {
+    const resolved = await resolveToPnJid(Chisato, context.sender);
+    if (resolved) {
+        senderNumber = resolved.split("@")[0];
+    }
+} catch {}
 
 const isNoble = (config.allowedNumbers || []).some(
-    number => String(number).replace(/\D/g, "") === sender.replace(/\D/g, "")
+    number =>
+        String(number).replace(/\D/g, "") ===
+        senderNumber.replace(/\D/g, "")
 );
 
 const nobleRestrictedCommands = ["add-noble", "remove-noble"];
