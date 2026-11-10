@@ -13,128 +13,22 @@ type FlagQuestion = {
     aliases: string[];
 };
 
-const eventSetups = new Map<string, EventSetup>();
 type ActiveEvent = {
-    game?: "writing" | "flags";
+    game: "writing" | "flags";
     round: number;
     total: number;
     seconds: number;
     answer: string;
-    acceptedAnswers?: string[];
-    imageUrl?: string;
+    acceptedAnswers: string[];
     characters: string[];
     flags?: FlagQuestion[];
     scores: Map<string, number>;
     timer: ReturnType<typeof setTimeout> | null;
     answered: boolean;
 };
-    
 
+const eventSetups = new Map<string, EventSetup>();
 const activeEvents = new Map<string, ActiveEvent>();
-
-export async function startWritingEvent(
-    Chisato: any,
-    from: string,
-    message: any,
-    total: number
-) {
-    if (activeEvents.has(from)) {
-        await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.", message);
-        return;
-    }
-
-    const roundCount = Math.max(
-        1,
-        Math.min(Math.floor(total), CHARACTERS.length)
-    );
-
-    const event: ActiveEvent = {
-        round: 1,
-        total: roundCount,
-        seconds: 8,
-        answer: "",
-        characters: shuffle(CHARACTERS).slice(0, roundCount),
-        scores: new Map(),
-        timer: null,
-        answered: false,
-    };
-
-    eventSetups.delete(from);
-    activeEvents.set(from, event);
-
-    await Chisato.sendText(
-        from,
-        `🎉 *بدأ تحدي الكتابة!*\n` +
-        `أسرع شخص يكتب اسم الشخصية يفوز.\n` +
-        `💎 كل فوز = ${REWARD} AURA\n` +
-        `🏁 عدد الجولات: ${event.total}\n` +
-        `⏱️ مدة الجولة: ${event.seconds} ثوانٍ`
-    );
-
-    await nextRound(Chisato, from, event);
-}
-export async function beginEventSetup(Chisato: any, from: string, owner: string) {
-    if (activeEvents.has(from)) {
-        await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.");
-        return;
-    }
-
-    eventSetups.set(from, { step: "games", owner });
-    await Chisato.sendText(
-        from,
-        "🎉 *إعداد فعالية جديدة*\n\nاكتب:\n.العاب"
-    );
-}
-
-export async function showEventGames(Chisato: any, from: string) {
-    const setup = eventSetups.get(from);
-
-    if (!setup || setup.step !== "games") {
-        await Chisato.sendText(from, "ابدأ أولاً بكتابة .فعالية");
-        return;
-    }
-
-    setup.step = "game";
-    await Chisato.sendText(
-        from,
-        "🎮 *الألعاب المتاحة:*\n\n✍️ الكتابة\n🏳️ أعلام الدول\n\nاكتب:\n.كتابة أو .دول"
-    );
-        
-}
-
-export async function selectWritingGame(Chisato: any, from: string) {
-    const setup = eventSetups.get(from);
-
-    if (!setup || setup.step !== "game") {
-        await Chisato.sendText(from, "اكتب .فعالية ثم .العاب أولاً.");
-        return;
-    }
-
-    setup.step = "rounds";
-    setup.selectedGame = "writing";
-
-    await Chisato.sendText(
-        from,
-        "✍️ تم اختيار لعبة الكتابة.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
-    );
-}
-
-export async function selectFlagsGame(Chisato: any, from: string) {
-    const setup = eventSetups.get(from);
-
-    if (!setup || setup.step !== "game") {
-        await Chisato.sendText(from, "اكتب .فعالية ثم .العاب أولاً.");
-        return;
-    }
-
-    setup.step = "rounds";
-    setup.selectedGame = "flags";
-
-    await Chisato.sendText(
-        from,
-        "🏳️ تم اختيار لعبة أعلام الدول.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
-    );
-}
 
 const REWARD = 100;
 
@@ -187,7 +81,7 @@ const CHARACTERS = [
     // جوجوتسو كايسن
     "يوجي", "غوجو", "ميغومي", "نوبارا", "سوكونا",
     "غيتو", "يوتا", "توجي", "نانامي", "ماكي",
-    "تشيoso", "ماهito",
+    "تشوسو", "ماهيتو",
 
     // مونستر
     "تينما", "يوهان", "نينا", "لونغه", "غريمر",
@@ -206,12 +100,14 @@ const CHARACTERS = [
     // بلاك كلوفر
     "استا", "يونو", "نويل", "يامي", "يوليوس",
     "نيرو", "فانيكا", "زاغريد",
+
     // جينتاما
-"غينتوكي", "كاغورا", "شينباتشي",
-"تاكاسوجي", "كاموي", "كاتسورا",
-"هيجيكاتا", "أوكيتا", "كوندو",
-"ساروتوبي", "تسوكويو", "ساكاموتو",
+    "غينتوكي", "كاغورا", "شينباتشي",
+    "تاكاسوجي", "كاموي", "كاتسورا",
+    "هيجيكاتا", "أوكيتا", "كوندو",
+    "ساروتوبي", "تسوكويو", "ساكاموتو",
 ];
+
 const FLAG_QUESTIONS: FlagQuestion[] = [
     { country: "سوريا", code: "sy", aliases: ["سوريا", "الجمهورية العربية السورية"] },
     { country: "الأردن", code: "jo", aliases: ["الأردن", "اردن"] },
@@ -276,6 +172,160 @@ function shuffle<T>(items: T[]): T[] {
     return result;
 }
 
+export async function startWritingEvent(
+    Chisato: any,
+    from: string,
+    message: any,
+    total: number
+) {
+    if (activeEvents.has(from)) {
+        await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.", message);
+        return;
+    }
+
+    const roundCount = Math.max(
+        1,
+        Math.min(Math.floor(total), CHARACTERS.length)
+    );
+
+    const event: ActiveEvent = {
+        game: "writing",
+        round: 1,
+        total: roundCount,
+        seconds: 8,
+        answer: "",
+        acceptedAnswers: [],
+        characters: shuffle(CHARACTERS).slice(0, roundCount),
+        scores: new Map(),
+        timer: null,
+        answered: false,
+    };
+
+    eventSetups.delete(from);
+    activeEvents.set(from, event);
+
+    await Chisato.sendText(
+        from,
+        `🎉 *بدأ تحدي الكتابة!*\n` +
+        `أسرع شخص يكتب اسم الشخصية يفوز.\n` +
+        `💎 كل فوز = ${REWARD} AURA\n` +
+        `🏁 عدد الجولات: ${event.total}\n` +
+        `⏱️ مدة الجولة: ${event.seconds} ثوانٍ`
+    );
+
+    await nextRound(Chisato, from, event);
+}
+
+export async function startFlagEvent(
+    Chisato: any,
+    from: string,
+    total: number
+) {
+    if (activeEvents.has(from)) {
+        await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.");
+        return;
+    }
+
+    const roundCount = Math.min(
+        Math.max(Math.floor(total), 1),
+        FLAG_QUESTIONS.length
+    );
+
+    const event: ActiveEvent = {
+        game: "flags",
+        round: 1,
+        total: roundCount,
+        seconds: 30,
+        answer: "",
+        acceptedAnswers: [],
+        characters: [],
+        flags: shuffle(FLAG_QUESTIONS).slice(0, roundCount),
+        scores: new Map(),
+        timer: null,
+        answered: false,
+    };
+
+    eventSetups.delete(from);
+    activeEvents.set(from, event);
+
+    await Chisato.sendText(
+        from,
+        `🎉 *بدأ تحدي أعلام الدول!*\n` +
+        `🏁 عدد الجولات: ${event.total}\n` +
+        `⏱️ مدة الجولة: ${event.seconds} ثانية\n` +
+        `💎 كل فوز = ${REWARD} AURA`
+    );
+
+    await nextRound(Chisato, from, event);
+}
+
+export async function beginEventSetup(
+    Chisato: any,
+    from: string,
+    owner: string
+) {
+    if (activeEvents.has(from)) {
+        await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.");
+        return;
+    }
+
+    eventSetups.set(from, { step: "games", owner });
+
+    await Chisato.sendText(
+        from,
+        "🎉 *إعداد فعالية جديدة*\n\nاكتب:\n.العاب"
+    );
+}
+
+export async function showEventGames(Chisato: any, from: string) {
+    const setup = eventSetups.get(from);
+
+    if (!setup || setup.step !== "games") {
+        await Chisato.sendText(from, "ابدأ أولاً بكتابة .فعالية");
+        return;
+    }
+
+    setup.step = "game";
+
+    await Chisato.sendText(
+        from,
+        "🎮 *الألعاب المتاحة:*\n\n✍️ الكتابة\n🏳️ أعلام الدول\n\nاكتب:\n.كتابة أو .دول"
+    );
+}
+
+export async function selectWritingGame(Chisato: any, from: string) {
+    const setup = eventSetups.get(from);
+
+    if (!setup || setup.step !== "game") {
+        await Chisato.sendText(from, "اكتب .فعالية ثم .العاب أولاً.");
+        return;
+    }
+
+    setup.step = "rounds";
+    setup.selectedGame = "writing";
+
+    await Chisato.sendText(
+        from,
+        "✍️ تم اختيار لعبة الكتابة.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
+    );
+}
+
+export async function selectFlagsGame(Chisato: any, from: string) {
+    const setup = eventSetups.get(from);
+
+    if (!setup || setup.step !== "game") {
+        await Chisato.sendText(from, "اكتب .فعالية ثم .العاب أولاً.");
+        return;
+    }
+
+    setup.step = "rounds";
+    setup.selectedGame = "flags";
+
+    await Chisato.sendText(
+        from,
+        "🏳️ تم اختيار لعبة أعلام الدول.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
+    );
+}
 
 async function nextRound(
     Chisato: any,
@@ -306,21 +356,46 @@ async function nextRound(
         return;
     }
 
-    event.answer = event.characters[event.round - 1];
+    const flag =
+        event.game === "flags"
+            ? event.flags?.[event.round - 1]
+            : undefined;
+
+    if (event.game === "flags" && !flag) return;
+
+    event.answer = flag
+        ? flag.country
+        : event.characters[event.round - 1];
+
+    event.acceptedAnswers = flag
+        ? [flag.country, ...flag.aliases].map(normalize)
+        : [normalize(event.answer)];
+
     event.answered = false;
 
-    await Chisato.sendText(
-        from,
-        `✦ 『 ✍️ تحدي الكتابة 』 ✦\n\n` +
-        `📝 اكتب اسم الشخصية التالية:\n\n` +
-        `🌟 *${event.answer}*\n\n` +
-        `🏁 الجولة ${event.round}/${event.total}\n` +
-        `⏱️ الوقت: ${event.seconds} ثوانٍ\n` +
-        `💎 الجائزة: ${REWARD} AURA\n` +
-        `━━━━━━━━━━━━━━━`
-    );
-
     if (event.timer) clearTimeout(event.timer);
+
+    if (flag) {
+        await Chisato.sendImage(
+            from,
+            `https://flagcdn.com/w320/${flag.code}.png`,
+            `🏳️ *خمن اسم الدولة!*\n\n` +
+            `🏁 الجولة ${event.round}/${event.total}\n` +
+            `⏱️ الوقت: ${event.seconds} ثانية\n` +
+            `💎 الجائزة: ${REWARD} AURA`
+        );
+    } else {
+        await Chisato.sendText(
+            from,
+            `✦ 『 ✍️ تحدي الكتابة 』 ✦\n\n` +
+            `📝 اكتب اسم الشخصية التالية:\n\n` +
+            `🌟 *${event.answer}*\n\n` +
+            `🏁 الجولة ${event.round}/${event.total}\n` +
+            `⏱️ الوقت: ${event.seconds} ثوانٍ\n` +
+            `💎 الجائزة: ${REWARD} AURA\n` +
+            `━━━━━━━━━━━━━━━`
+        );
+    }
 
     event.timer = setTimeout(async () => {
         if (!activeEvents.has(from) || event.answered) return;
@@ -359,28 +434,41 @@ export async function handleEventMessage(
 ): Promise<boolean> {
     const setup = eventSetups.get(from);
 
-if (setup?.step === "rounds" && setup.selectedGame === "writing") {
-    if (sender !== setup.owner) return false;
+    if (setup?.step === "rounds") {
+        if (sender !== setup.owner) return false;
 
-    const choices: Record<string, number> = {
-        "1": 10,
-        "2": 20,
-        "3": 30,
-    };
+        const choices: Record<string, number> = {
+            "1": 10,
+            "2": 20,
+            "3": 30,
+        };
 
-    const selected = choices[body.trim()];
+        const selected = choices[body.trim()];
+        if (!selected) return false;
 
-    if (!selected) return false;
+        if (setup.selectedGame === "writing") {
+            await startWritingEvent(Chisato, from, undefined, selected);
+            return true;
+        }
 
-    await startWritingEvent(Chisato, from, undefined, selected);
-    return true;
-}
+        if (setup.selectedGame === "flags") {
+            await startFlagEvent(Chisato, from, selected);
+            return true;
+        }
+
+        return false;
+    }
+
     const event = activeEvents.get(from);
 
     if (!event || !body || body.startsWith(".")) return false;
     if (event.answered) return false;
 
-    if (normalize(body) !== normalize(event.answer)) return false;
+    const accepted = event.acceptedAnswers.length
+        ? event.acceptedAnswers
+        : [normalize(event.answer)];
+
+    if (!accepted.includes(normalize(body))) return false;
 
     event.answered = true;
 
@@ -415,7 +503,7 @@ if (setup?.step === "rounds" && setup.selectedGame === "writing") {
             from,
             `🎉 *إجابة صحيحة!*\n` +
             `🏆 الفائز: @${sender.split("@")[0]}\n` +
-            `📝 الشخصية: *${event.answer}*\n` +
+            `${event.game === "flags" ? "🏳️ الدولة" : "📝 الشخصية"}: *${event.answer}*\n` +
             `💎 المكافأة: +${REWARD} AURA\n` +
             `💰 رصيدك: ${account.aura.toLocaleString()} AURA`,
             undefined,
