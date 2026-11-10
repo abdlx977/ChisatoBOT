@@ -1,5 +1,7 @@
 {
+    {
     "ownerNumber": ["96393924737"],
+    "allowedNumbers": [],
     "teamNumber": [],
     "timeZone": "Asia/Jakarta",
     "prefix": ".",
