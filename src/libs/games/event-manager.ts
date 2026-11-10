@@ -68,7 +68,7 @@ export async function beginEventSetup(Chisato: any, from: string, owner: string)
         return;
     }
 
-    eventSetups.set(from, { step: "games" });
+    eventSetups.set(from, { step: "games", owner });
     await Chisato.sendText(
         from,
         "🎉 *إعداد فعالية جديدة*\n\nاكتب:\n.العاب"
