@@ -62,7 +62,7 @@ export async function startWritingEvent(
 
     await nextRound(Chisato, from, event);
 }
-export async function beginEventSetup(Chisato: any, from: string) {
+export async function beginEventSetup(Chisato: any, from: string, owner: string) {
     if (activeEvents.has(from)) {
         await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.");
         return;
