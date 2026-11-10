@@ -13,6 +13,57 @@ type ActiveEvent = {
 };
 
 const activeEvents = new Map<string, ActiveEvent>();
+type EventSetup = {
+    step: "games" | "game" | "rounds";
+    selectedGame?: "writing";
+};
+
+const eventSetups = new Map<string, EventSetup>();
+
+export async function beginEventSetup(Chisato: any, from: string) {
+    if (activeEvents.has(from)) {
+        await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.");
+        return;
+    }
+
+    eventSetups.set(from, { step: "games" });
+    await Chisato.sendText(
+        from,
+        "🎉 *إعداد فعالية جديدة*\n\nاكتب:\n.العاب"
+    );
+}
+
+export async function showEventGames(Chisato: any, from: string) {
+    const setup = eventSetups.get(from);
+
+    if (!setup || setup.step !== "games") {
+        await Chisato.sendText(from, "ابدأ أولاً بكتابة .فعالية");
+        return;
+    }
+
+    setup.step = "game";
+    await Chisato.sendText(
+        from,
+        "🎮 *الألعاب المتاحة:*\n\n✍️ الكتابة\n\nاكتب:\n.كتابة"
+    );
+}
+
+export async function selectWritingGame(Chisato: any, from: string) {
+    const setup = eventSetups.get(from);
+
+    if (!setup || setup.step !== "game") {
+        await Chisato.sendText(from, "اكتب .فعالية ثم .العاب أولاً.");
+        return;
+    }
+
+    setup.step = "rounds";
+    setup.selectedGame = "writing";
+
+    await Chisato.sendText(
+        from,
+        "✍️ تم اختيار لعبة الكتابة.\n\nحدد عدد الجولات هكذا:\n.الجولات 30"
+    );
+}
 const REWARD = 100;
 
 const CHARACTERS = [
