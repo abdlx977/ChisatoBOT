@@ -103,7 +103,7 @@ export async function selectWritingGame(Chisato: any, from: string) {
 
     await Chisato.sendText(
         from,
-        "✍️ تم اختيار لعبة الكتابة.\n\nحدد عدد الجولات هكذا:\n.الجولات 30"
+        "✍️ تم اختيار لعبة الكتابة.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط." 
     );
 }
 export async function setEventRounds(
