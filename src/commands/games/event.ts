@@ -10,7 +10,7 @@ export default {
     isOwner: true,
     isGroup: true,
 
-    async run({ Chisato, from }) {
-        await beginEventSetup(Chisato, from);
-    },
+    async run({ Chisato, from, sender }) {
+    await beginEventSetup(Chisato, from, sender);
+},
 } satisfies ConfigCommands;
