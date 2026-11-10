@@ -93,6 +93,32 @@ export class MessageHandler {
                 }
             }
 
+            // Restrict bot commands to owner and allowed numbers
+if (context.isCmd && !context.isOwner) {
+    let senderNumber = String(context.sender || "").split("@")[0];
+
+    try {
+        const resolved = await resolveToPnJid(Chisato, context.sender);
+        if (resolved) {
+            senderNumber = resolved.split("@")[0];
+        }
+    } catch {}
+
+    const allowed = (config.allowedNumbers || []).some(
+        (number) =>
+            String(number).replace(/\D/g, "") ===
+            senderNumber.replace(/\D/g, "")
+    );
+
+    if (!allowed) {
+        await Chisato.sendText(
+            context.from,
+            "⛔ عذرًا، لا تملك صلاحية استخدام أوامر البوت.",
+            message
+        );
+        return;
+    }
+}
             const command = context.cmd
                 ? (commands.get(context.cmd) ?? aliasIndex.get(context.cmd) ?? null)
                 : null;
