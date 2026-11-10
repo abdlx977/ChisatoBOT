@@ -8,7 +8,7 @@
 "node": ">=22.12.0 <23" 
 }, 
     "scripts": {
-        "build": "tsc --build && node scripts/add-js-extensions.cjs && npm run web:build",
+        "build": "node scripts/patch-baileys.cjs && tsc --build && node scripts/add-js-extensions.cjs && npm run web:build",
         "build:server": "tsc --build && node scripts/add-js-extensions.cjs",
         "web:build": "node -e \"require('fs').rmSync('public/assets',{recursive:true,force:true})\" && vite build --config web/vite.config.js",
         "web:dev": "vite --config web/vite.config.js",
