@@ -112,6 +112,28 @@ async function nextRound(
     event: ActiveEvent
 ) {
     if (event.round > event.total) {
+    const entries = [...event.scores.entries()]
+        .sort((a, b) => b[1] - a[1]);
+
+    const mentions = entries.map(([id]) => id);
+
+    const ranking = entries
+        .map(([id, earned], i) =>
+            `${i + 1}. @${id.split("@")[0]} — ${earned.toLocaleString()} AURA`
+        )
+        .join("\n");
+
+    activeEvents.delete(from);
+
+    await Chisato.sendText(
+        from,
+        `🏁 *انتهت الفعالية!*\n\n` +
+        `🏆 *ترتيب الفائزين:*\n${ranking || "لم يفز أحد هذه المرة."}`,
+        undefined,
+        { mentions }
+    );
+    return;
+    }
         const ranking = [...event.scores.entries()]
             .sort((a, b) => b[1] - a[1])
             .map(([id, earned], i) =>
