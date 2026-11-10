@@ -28,15 +28,7 @@ type ActiveEvent = {
     timer: ReturnType<typeof setTimeout> | null;
     answered: boolean;
 };
-    round: number;
-    total: number;
-    seconds: number;
-    answer: string;
-    characters: string[];
-    scores: Map<string, number>;
-    timer: ReturnType<typeof setTimeout> | null;
-    answered: boolean;
-};
+    
 
 const activeEvents = new Map<string, ActiveEvent>();
 
@@ -98,10 +90,16 @@ export async function showEventGames(Chisato: any, from: string) {
     const setup = eventSetups.get(from);
 
     if (!setup || setup.step !== "games") {
-        await Chisato.sendText(
-    from,
-    "🎮 *الألعاب المتاحة:*\n\n✍️ الكتابة\n🏳️ أعلام الدول\n\nاكتب:\n.كتابة أو .دول"
-);
+        await Chisato.sendText(from, "ابدأ أولاً بكتابة .فعالية");
+        return;
+    }
+
+    setup.step = "game";
+    await Chisato.sendText(
+        from,
+        "🎮 *الألعاب المتاحة:*\n\n✍️ الكتابة\n🏳️ أعلام الدول\n\nاكتب:\n.كتابة أو .دول"
+    );
+}
     }
 
     setup.step = "game";
@@ -112,7 +110,23 @@ export async function showEventGames(Chisato: any, from: string) {
 }
 
 export async function selectWritingGame(Chisato: any, from: string) {
-    export async function selectFlagsGame(Chisato: any, from: string) {
+    const setup = eventSetups.get(from);
+
+    if (!setup || setup.step !== "game") {
+        await Chisato.sendText(from, "اكتب .فعالية ثم .العاب أولاً.");
+        return;
+    }
+
+    setup.step = "rounds";
+    setup.selectedGame = "writing";
+
+    await Chisato.sendText(
+        from,
+        "✍️ تم اختيار لعبة الكتابة.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
+    );
+}
+
+export async function selectFlagsGame(Chisato: any, from: string) {
     const setup = eventSetups.get(from);
 
     if (!setup || setup.step !== "game") {
@@ -127,27 +141,7 @@ export async function selectWritingGame(Chisato: any, from: string) {
         from,
         "🏳️ تم اختيار لعبة أعلام الدول.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
     );
-    }
-    const setup = eventSetups.get(from);
-
-    if (!setup || setup.step !== "game") {
-        await Chisato.sendText(from, "اكتب .فعالية ثم .العاب أولاً.");
-        return;
-    }
-
-    setup.step = "rounds";
-    setup.selectedGame = "writing";
-
-    await Chisato.sendText(
-        from,
-        "✍️ تم اختيار لعبة الكتابة.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط." 
-    );
-}
-export async function setEventRounds(
-    Chisato: any,
-    from: string,
-    arg?: string
-) {
+        }
     const setup = eventSetups.get(from);
 
     if (!setup || setup.step !== "rounds" || setup.selectedGame !== "writing") {
