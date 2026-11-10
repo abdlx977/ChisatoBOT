@@ -18,12 +18,7 @@ type EventSetup = {
     selectedGame?: "writing";
 };
 
-export async function startWritingEvent(
-    Chisato: any,
-    from: string,
-    message: any,
-    total: number
-) {
+ {
     if (activeEvents.has(from)) {
         await Chisato.sendText(from, "⚠️ توجد فعالية جارية بالفعل.", message);
         return;
