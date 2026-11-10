@@ -7,6 +7,18 @@ type EventSetup = {
 };
 
 const eventSetups = new Map<string, EventSetup>();
+type ActiveEvent = {
+    round: number;
+    total: number;
+    seconds: number;
+    answer: string;
+    characters: string[];
+    scores: Map<string, number>;
+    timer: ReturnType<typeof setTimeout> | null;
+    answered: boolean;
+};
+
+const activeEvents = new Map<string, ActiveEvent>();
 
 export async function startWritingEvent(
     Chisato: any,
