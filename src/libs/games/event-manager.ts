@@ -99,14 +99,7 @@ export async function showEventGames(Chisato: any, from: string) {
         from,
         "🎮 *الألعاب المتاحة:*\n\n✍️ الكتابة\n🏳️ أعلام الدول\n\nاكتب:\n.كتابة أو .دول"
     );
-}
-    }
-
-    setup.step = "game";
-    await Chisato.sendText(
-        from,
-        "🎮 *الألعاب المتاحة:*\n\n✍️ الكتابة\n\nاكتب:\n.كتابة"
-    );
+        
 }
 
 export async function selectWritingGame(Chisato: any, from: string) {
@@ -142,25 +135,7 @@ export async function selectFlagsGame(Chisato: any, from: string) {
         "🏳️ تم اختيار لعبة أعلام الدول.\n\nاختر عدد الجولات:\n\n1️⃣ — 10 جولات\n2️⃣ — 20 جولة\n3️⃣ — 30 جولة\n\nأرسل الرقم فقط."
     );
         }
-    const setup = eventSetups.get(from);
-
-    if (!setup || setup.step !== "rounds" || setup.selectedGame !== "writing") {
-        await Chisato.sendText(from, "ابدأ أولاً بالترتيب: .فعالية ثم .العاب ثم .كتابة");
-        return;
-    }
-
-    const total = Number(arg);
-
-    if (!Number.isInteger(total) || total < 1 || total > CHARACTERS.length) {
-        await Chisato.sendText(
-            from,
-            `⚠️ أدخل عددًا صحيحًا من 1 إلى ${CHARACTERS.length}.\nمثال: .الجولات 30`
-        );
-        return;
-    }
-
-    await startWritingEvent(Chisato, from, undefined, total);
-}
+    
 const REWARD = 100;
 
 const CHARACTERS = [
