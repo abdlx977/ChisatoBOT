@@ -120,6 +120,16 @@ if (context.isCmd && !context.isOwner) {
         return;
     }
 }
+            if (context.isGroup) {
+    const handled = await handleEventMessage(
+        Chisato,
+        context.from,
+        context.sender,
+        message.body
+    );
+
+    if (handled) return;
+            }
             const command = context.cmd
                 ? (commands.get(context.cmd) ?? aliasIndex.get(context.cmd) ?? null)
                 : null;
