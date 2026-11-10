@@ -1,4 +1,5 @@
 import { configService } from "../../../core/config/config.service";
+import { resolveToPnJid } from "../../../utils/jid-resolver";
 import { formatExample } from "../../../utils";
 
 export class CommandValidator {
