@@ -81,11 +81,12 @@ class ConfigService {
             throw new Error("Config validation failed: timeZone is required");
         }
         if (!this.config.commandOverrides) {
-            this.config.commandOverrides = {};
-            if (!Array.isArray(this.config.allowedNumbers)) {
+    this.config.commandOverrides = {};
+}
+
+if (!Array.isArray(this.config.allowedNumbers)) {
     this.config.allowedNumbers = [];
-            }
-        }
+}
     }
 
     public getConfig(): BotConfig {
