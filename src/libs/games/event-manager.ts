@@ -4,6 +4,7 @@ import { databaseService } from "../../infrastructure/database/database.service"
 type EventSetup = {
     step: "games" | "game" | "rounds";
     selectedGame?: "writing";
+    owner: string;
 };
 
 const eventSetups = new Map<string, EventSetup>();
