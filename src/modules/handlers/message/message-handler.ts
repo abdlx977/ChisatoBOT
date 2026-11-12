@@ -143,9 +143,7 @@ if (context.isCmd && !context.isOwner) {
         return;
     }
 }
-    let senderNumber = String(context.sender || "").split("@")[0];
-
-    try {
+    
         const resolved = await resolveToPnJid(Chisato, context.sender);
         if (resolved) {
             senderNumber = resolved.split("@")[0];
