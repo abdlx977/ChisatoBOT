@@ -1,6 +1,5 @@
 
 import { configService } from "../../../core/config/config.service";
-import { Database } from "../../../infrastructure/database/database.service";
 import { resolveToPnJid } from "../../../utils/jid-resolver";
 import { formatExample } from "../../../utils";
 
@@ -33,24 +32,15 @@ export class CommandValidator {
             return { valid: false, reason: "limit" };
         }
 
-        // Check example requirement
-        if (command.example && context.args.length === 0) {
-            const formattedExample = formatExample(command.example, {
-                prefix: context.prefix,
-                command: { name: command.name, alias: command.alias },
-                botName: context.botName,
-                pushName: context.pushName,
-                context: context
-            });
-
+        
+        // Check group requirement
+        if (command.isGroup && !context.isGroup) {
             await Chisato.sendText(
                 context.from,
-                formattedExample,
+                "*「 ! 」* Sorry, This command can only be used in Groups!",
                 message
             );
-            return { valid: false, reason: "example_required" };
-        }
-
+    
         // Check owner permission
         let senderNumber = String(context.sender || "").split("@")[0];
 
@@ -63,19 +53,10 @@ export class CommandValidator {
 
         senderNumber = senderNumber.replace(/\D/g, "");
 
-        let isNoble = false;
-
-        if (senderNumber) {
-            try {
-                const nobleMember = await Database.nobleMember.findUnique({
-                    where: { phoneNumber: senderNumber },
-                });
-
-                isNoble = Boolean(nobleMember);
-            } catch {
-                isNoble = false;
-            }
-        }
+        const isNoble = (config.allowedNumbers || []).some(
+            (number) =>
+                String(number).replace(/\D/g, "") === senderNumber
+        );
 
         const nobleRestrictedCommands = ["add-noble", "remove-noble"];
 
@@ -91,15 +72,7 @@ export class CommandValidator {
             );
             return { valid: false, reason: "owner_only" };
         }
-
-        // Check group requirement
-        if (command.isGroup && !context.isGroup) {
-            await Chisato.sendText(
-                context.from,
-                "*「 ! 」* Sorry, This command can only be used in Groups!",
-                message
-            );
-            return { valid: false, reason: "group_only" };
+        return { valid: false, reason: "group_only" };
         }
 
         // Check private requirement
