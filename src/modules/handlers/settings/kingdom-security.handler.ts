@@ -19,6 +19,30 @@ const warnings = new Map<
 >();
 
 const activity = new Map<string, ActivityRecord[]>();
+export function getKingdomSecurityStats(groupId: string) {
+    const now = Date.now();
+    const prefix = `${groupId}:`;
+
+    const activeWarnings = [...warnings.entries()].filter(
+        ([key, value]) =>
+            key.startsWith(prefix) && now <= value.expiresAt
+    );
+
+    const activeActivity = [...activity.entries()].filter(
+        ([key, records]) =>
+            key.startsWith(prefix) &&
+            records.some(record => record.time > now - SPAM_WINDOW)
+    );
+
+    return {
+        membersWithWarnings: activeWarnings.length,
+        totalWarnings: activeWarnings.reduce(
+            (total, [, value]) => total + value.count,
+            0
+        ),
+        membersBeingTracked: activeActivity.length,
+    };
+}
 
 function cleanNumber(value: string): string {
     return String(value || "")
