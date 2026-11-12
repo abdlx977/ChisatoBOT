@@ -1,5 +1,6 @@
+
 import type { ConfigCommands } from "../../types/structure/commands";
-import { configService } from "../../core/config/config.service";
+import { Database } from "../../infrastructure/database/database.service";
 import { resolveToPnJid } from "../../utils/jid-resolver";
 
 export default {
@@ -38,30 +39,45 @@ export default {
             resolved = (await resolveToPnJid(Chisato, target)) || target;
         } catch {}
 
-        const number = String(resolved).split("@")[0].replace(/\D/g, "");
+        const number = String(resolved)
+            .split("@")[0]
+            .replace(/\D/g, "");
 
         if (!number) {
             await Chisato.sendText(from, "❌ تعذر تحديد رقم الشخص.", message);
             return;
         }
 
-        const config = configService.getConfig();
-        const allowed = config.allowedNumbers || [];
+        try {
+            const existing = await Database.nobleMember.findUnique({
+                where: { phoneNumber: number },
+            });
 
-        if (allowed.some(n => String(n).replace(/\D/g, "") === number)) {
-            await Chisato.sendText(from, "ℹ️ هذا الشخص موجود بالفعل في النخبة.", message);
-            return;
+            if (existing) {
+                await Chisato.sendText(
+                    from,
+                    "ℹ️ هذا الشخص موجود بالفعل في النخبة.",
+                    message
+                );
+                return;
+            }
+
+            await Database.nobleMember.create({
+                data: { phoneNumber: number },
+            });
+
+            await Chisato.sendText(
+                from,
+                `✅ تمت إضافة @${number} إلى النخبة بنجاح.`,
+                message,
+                { mentions: [target] }
+            );
+        } catch (error) {
+            await Chisato.sendText(
+                from,
+                "❌ حدث خطأ أثناء إضافة العضو. حاول مرة أخرى.",
+                message
+            );
         }
-
-        configService.updateConfig({
-            allowedNumbers: [...allowed, number],
-        });
-
-        await Chisato.sendText(
-            from,
-            `✅ تمت إضافة @${number} إلى النخبة بنجاح.`,
-            message,
-            { mentions: [target] }
-        );
     },
 } satisfies ConfigCommands;
