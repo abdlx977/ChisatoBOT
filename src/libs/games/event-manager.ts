@@ -146,6 +146,17 @@ function normalize(value: string): string {
         .trim();
 }
 
+function normalizeDecomposed(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/[ً-ْ]/g, "")
+        .replace(/[أإآ]/g, "ا")
+        .replace(/ة/g, "ه")
+        .replace(/ـ/g, "")
+        .trim()
+        .replace(/\s+/g, " ");
+}
+
 function shuffle<T>(items: T[]): T[] {
     const result = [...items];
 
