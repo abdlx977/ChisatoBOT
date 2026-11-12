@@ -1,3 +1,4 @@
+
 import { MessageSerialize } from "../../../types/structure/serialize";
 import { Client } from "../../../libs/client/client";
 import { BotConfig, configService } from "../../../core/config/config.service";
@@ -27,6 +28,7 @@ export class MessageHandler {
         Group: new GroupDatabase(),
         User: new UserDatabase(),
     };
+
     private antiLinkHandler = new AntiLinkHandler();
     private antiBotMessageHandler = new AntiBotMessageHandler();
     private kingdomSecurityHandler = new KingdomSecurityHandler();
@@ -47,7 +49,6 @@ export class MessageHandler {
             // Ignore status broadcasts and protocol messages
             if (message.key.remoteJid === "status@broadcast") return;
             if (!message.type || message.type === "protocolMessage") return;
-            
 
             if (!message.fromMe && config.settings.selfbot) return;
 
@@ -64,20 +65,22 @@ export class MessageHandler {
                 this.Database
             );
 
-            // Get command if exists 
             if (!context) return;
-            if (context.isGroup) {
-    const securityHandled = await this.kingdomSecurityHandler.handle(
-        Chisato,
-        message,
-        context.isOwner,
-        context.isGroupAdmin,
-        context.isBotAdmin
-    );
 
-    if (securityHandled) return;
+            // Kingdom security protection
+            if (context.isGroup) {
+                const securityHandled = await this.kingdomSecurityHandler.handle(
+                    Chisato,
+                    message,
+                    context.isOwner,
+                    context.isGroupAdmin,
+                    context.isBotAdmin
+                );
+
+                if (securityHandled) return;
             }
 
+            // Login OTP
             if (
                 !message.fromMe &&
                 !context.isGroup &&
@@ -85,101 +88,89 @@ export class MessageHandler {
                 /^\s*\d{4,8}\s*$/.test(message.body)
             ) {
                 const candidates = new Set<string>();
+
                 for (const j of [context.sender, message.sender, message.from]) {
                     if (j) candidates.add(String(j));
                 }
+
                 try {
                     const [pnSender, pnFrom] = await Promise.all([
                         resolveToPnJid(Chisato, message.sender),
                         resolveToPnJid(Chisato, message.from),
                     ]);
+
                     if (pnSender) candidates.add(pnSender);
                     if (pnFrom) candidates.add(pnFrom);
                 } catch {}
+
                 const otp = tryConsumeLoginOtp([...candidates], message.body);
+
                 if (otp.matched) {
                     await Chisato.sendText(
                         context.from,
                         "✅ *Login verified!*\n\nYou can return to the dashboard — it will continue automatically.",
                         message
                     ).catch(() => {});
+
                     return;
                 }
             }
 
             // Restrict bot commands to owner and allowed noble members
-if (context.isCmd && !context.isOwner) {
-    const senderNumbers = new Set<string>();
+            if (context.isCmd && !context.isOwner) {
+                const senderNumbers = new Set<string>();
 
-    const rawSender = String(context.sender || "");
-    const rawNumber = rawSender.split("@")[0].replace(/\D/g, "");
+                const rawSender = String(context.sender || "");
+                const rawNumber = rawSender.split("@")[0].replace(/\D/g, "");
 
-    if (rawNumber) senderNumbers.add(rawNumber);
+                if (rawNumber) senderNumbers.add(rawNumber);
 
-    try {
-        const resolved = await resolveToPnJid(
-            Chisato,
-            context.sender,
-            context.groupMetadata
-        );
+                try {
+                    const resolved = await resolveToPnJid(
+                        Chisato,
+                        context.sender,
+                        context.groupMetadata
+                    );
 
-        const resolvedNumber = String(resolved || "")
-            .split("@")[0]
-            .replace(/\D/g, "");
+                    const resolvedNumber = String(resolved || "")
+                        .split("@")[0]
+                        .replace(/\D/g, "");
 
-        if (resolvedNumber) senderNumbers.add(resolvedNumber);
-    } catch {}
+                    if (resolvedNumber) senderNumbers.add(resolvedNumber);
+                } catch {}
 
-    const allowed = (config.allowedNumbers || []).some((number) =>
-        senderNumbers.has(String(number).replace(/\D/g, ""))
-    );
+                const allowed = (config.allowedNumbers || []).some((number) =>
+                    senderNumbers.has(String(number).replace(/\D/g, ""))
+                );
 
-    if (!allowed) {
-        await Chisato.sendText(
-            context.from,
-            "⛔ عذرًا، استخدام أوامر البوت مقتصر على المالك وأعضاء النخبة.",
-            message
-        );
-        return;
-    }
-}
-    
-        const resolved = await resolveToPnJid(Chisato, context.sender);
-        if (resolved) {
-            senderNumber = resolved.split("@")[0];
-        }
-    } catch {}
+                if (!allowed) {
+                    await Chisato.sendText(
+                        context.from,
+                        "⛔ عذرًا، استخدام أوامر البوت مقتصر على المالك وأعضاء النخبة.",
+                        message
+                    );
 
-    const allowed = (config.allowedNumbers || []).some(
-        (number) =>
-            String(number).replace(/\D/g, "") ===
-            senderNumber.replace(/\D/g, "")
-    );
-
-    if (!allowed) {
-        await Chisato.sendText(
-            context.from,
-            "⛔ عذرًا، لا تملك صلاحية استخدام أوامر البوت.",
-            message
-        );
-        return;
-    }
-}
-            if (context.isGroup) {
-    const handled = await handleEventMessage(
-        Chisato,
-        context.from,
-        context.sender,
-        message.body
-    );
-
-    if (handled) return;
+                    return;
+                }
             }
+
+            // Handle event messages
+            if (context.isGroup) {
+                const handled = await handleEventMessage(
+                    Chisato,
+                    context.from,
+                    context.sender,
+                    message.body
+                );
+
+                if (handled) return;
+            }
+
             const command = context.cmd
                 ? (commands.get(context.cmd) ?? aliasIndex.get(context.cmd) ?? null)
                 : null;
 
-            // Skip own messages in selfbot mode (team/owner always bypasses)
+            // Skip own messages in selfbot mode
             if (
                 !message.fromMe &&
                 !context.isTeam &&
@@ -187,7 +178,6 @@ if (context.isCmd && !context.isOwner) {
                 message.body &&
                 !message.body.startsWith(config.prefix + "mode")
             ) {
-                // In selfbot mode, only process own messages or mode command
                 await AfkHandler.handle(
                     Chisato,
                     context,
@@ -203,9 +193,9 @@ if (context.isCmd && !context.isOwner) {
                     return;
                 }
 
-                // Check if user has active adminpanel session
+                // Check active adminpanel session
                 if (await SessionHandler.handle(Chisato, message, context)) {
-                    return; // Session handled, skip normal command processing
+                    return;
                 }
 
                 // Log message/command
@@ -224,7 +214,6 @@ if (context.isCmd && !context.isOwner) {
                         command
                     );
                 } else if (context.cmd && config.settings.autoCorrect) {
-                    // Auto-correct: suggest similar commands
                     await this.suggestSimilarCommands(
                         Chisato,
                         message,
@@ -232,23 +221,21 @@ if (context.isCmd && !context.isOwner) {
                     );
                 }
 
-                // Run AFK handler and group settings concurrently — they are independent
+                // Run AFK handler and group settings concurrently
                 await Promise.all([
                     AfkHandler.handle(Chisato, context, message, this.Database),
                     this.handleGroupSettings(Chisato, message, context),
                 ]);
             }
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            
-            // Skip logging rate-overlimit errors to prevent spam
-            if (errorMessage.includes('rate-overlimit')) {
+            const errorMessage =
+                error instanceof Error ? error.message : String(error);
+
+            if (errorMessage.includes("rate-overlimit")) {
                 return;
             }
-            
-            logger.error(
-                `Message handler error: ${errorMessage}`
-            );
+
+            logger.error(`Message handler error: ${errorMessage}`);
         }
     }
 
@@ -266,6 +253,7 @@ if (context.isCmd && !context.isOwner) {
                 "Your premium has expired!",
                 message
             );
+
             await this.Database.User.update(context.sender, {
                 role: "free",
                 expired: 0,
@@ -281,7 +269,6 @@ if (context.isCmd && !context.isOwner) {
     ): Promise<void> {
         const config = configService.getConfig();
 
-        // Check if should skip
         if (CommandValidator.shouldSkipExecution(context, command)) {
             return;
         }
@@ -292,7 +279,7 @@ if (context.isCmd && !context.isOwner) {
             return;
         }
 
-        // Handle maintenance flag (owner only)
+        // Handle maintenance flag
         if (/^-[Mm](aintenance)?$/.test(context.args[0]) && context.isOwner) {
             await this.toggleMaintenance(Chisato, context, command, message);
             return;
@@ -305,6 +292,7 @@ if (context.isCmd && !context.isOwner) {
             context,
             command
         );
+
         if (!validation.valid) {
             return;
         }
@@ -345,41 +333,44 @@ if (context.isCmd && !context.isOwner) {
                 userMetadata: context.userMetadata,
             });
 
-            // Track adminpanel command calls for session handling
+            // Track adminpanel command calls
             if (command.name === "adminpanel") {
                 SessionHandler.trackAdminPanelCall(context.sender);
             }
 
-            // Add XP for command usage (leveling system)
+            // Add XP for command usage
             try {
                 if (message.fromMe) return;
+
                 const xpReward = calculateXPReward(
                     command.category,
                     context.isPremium
                 );
-                
+
                 const result = await this.Database.User.addXP(
                     context.sender,
                     xpReward,
                     command.name
                 );
 
-                // Notify user if they leveled up
                 if (result.leveledUp && result.newLevel) {
                     const rankInfo = getRankInfo(result.newLevel);
-                    
+
                     await Chisato.sendText(
                         context.from,
                         `🎉 *LEVEL UP!*\n\n` +
-                        `${rankInfo.emoji} Congratulations! You've reached Level ${result.newLevel}\n` +
-                        `Rank: ${rankInfo.rank}\n\n` +
-                        `Keep using commands to level up more!`,
+                            `${rankInfo.emoji} Congratulations! You've reached Level ${result.newLevel}\n` +
+                            `Rank: ${rankInfo.rank}\n\n` +
+                            `Keep using commands to level up more!`,
                         message
                     );
                 }
             } catch (error) {
-                // Don't block command execution if XP tracking fails
-                logger.error(`XP tracking error: ${error instanceof Error ? error.message : String(error)}`);
+                logger.error(
+                    `XP tracking error: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`
+                );
             }
         }
 
@@ -403,6 +394,7 @@ if (context.isCmd && !context.isOwner) {
             !context.isOwner
         ) {
             cooldowns.set(context.sender + command.name, Date.now());
+
             setTimeout(
                 () => cooldowns.delete(context.sender + command.name),
                 command.cooldown * 1000
@@ -422,7 +414,6 @@ if (context.isCmd && !context.isOwner) {
             return false;
         }
 
-        // List-selection responses (query contains '|') bypass cooldown
         if (command.interactiveSelection && context.query?.includes("|")) {
             return false;
         }
@@ -431,6 +422,7 @@ if (context.isCmd && !context.isOwner) {
             const remaining =
                 (Date.now() - cooldowns.get(context.sender + command.name)!) /
                 1000;
+
             Chisato.sendText(
                 context.from,
                 `Sorry, please wait ${remaining.toFixed(
@@ -438,6 +430,7 @@ if (context.isCmd && !context.isOwner) {
                 )} seconds to use this command again`,
                 message
             );
+
             return true;
         }
 
@@ -451,6 +444,7 @@ if (context.isCmd && !context.isOwner) {
         message: MessageSerialize
     ): Promise<void> {
         const config = configService.getConfig();
+
         let str =
             `*「 HELPER 」*\n\n` +
             `• Name : ${command.name}\n` +
@@ -474,9 +468,9 @@ if (context.isCmd && !context.isOwner) {
                 command: { name: command.name, alias: command.alias },
                 botName: context.botName,
                 pushName: context.pushName,
-                context: context
+                context: context,
             });
-            
+
             str += `• Example : \n${formattedExample}`;
         }
 
@@ -491,6 +485,7 @@ if (context.isCmd && !context.isOwner) {
     ): Promise<void> {
         if (configService.isMaintenance(command.name)) {
             configService.removeMaintenance(command.name);
+
             await Chisato.sendText(
                 context.from,
                 `*「 MAINTENANCE 」*\n\n${command.name} is now Online!`,
@@ -498,6 +493,7 @@ if (context.isCmd && !context.isOwner) {
             );
         } else {
             configService.addMaintenance(command.name);
+
             await Chisato.sendText(
                 context.from,
                 `*「 MAINTENANCE 」*\n\n${command.name} is now Maintenance!`,
@@ -511,16 +507,16 @@ if (context.isCmd && !context.isOwner) {
         message: MessageSerialize,
         context: any
     ): Promise<void> {
-        // Get all command names and aliases
         const allCommands: string[] = [];
+
         commands.forEach((cmd) => {
             allCommands.push(cmd.name);
+
             if (cmd.alias && cmd.alias.length > 0) {
                 allCommands.push(...cmd.alias);
             }
         });
 
-        // Find similar commands (threshold 60%, max 3 results)
         const similar = StringUtils.findSimilar(
             context.cmd.toLowerCase(),
             allCommands,
@@ -528,9 +524,8 @@ if (context.isCmd && !context.isOwner) {
             3
         );
 
-        // If found similar commands, send suggestion
         if (similar.length > 0) {
-            let suggestionText = `*「 AUTO CORRECT 」*\n\n` 
+            let suggestionText = `*「 AUTO CORRECT 」*\n\n`;
             suggestionText += `• Command *${context.cmd}* not found.\n`;
             suggestionText += `└ *Did you mean:*\n`;
 
@@ -561,7 +556,7 @@ if (context.isCmd && !context.isOwner) {
             context.isGroupAdmin
         );
 
-        // Handle anti-bot (message-based detection)
+        // Handle anti-bot
         await this.antiBotMessageHandler.handle(
             Chisato,
             message,
