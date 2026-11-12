@@ -15,6 +15,7 @@ import {
     User as UserDatabase,
 } from "../../../libs/database";
 import { AntiLinkHandler, AntiBotMessageHandler } from "../settings";
+import { KingdomSecurityHandler } from "../settings/kingdom-security.handler";
 import { StringUtils } from "../../../utils/core/string-utils";
 import { formatExample } from "../../../utils";
 import { tryConsumeLoginOtp } from "../../../dashboard/routes/group-auth";
@@ -28,6 +29,7 @@ export class MessageHandler {
     };
     private antiLinkHandler = new AntiLinkHandler();
     private antiBotMessageHandler = new AntiBotMessageHandler();
+    private kingdomSecurityHandler = new KingdomSecurityHandler();
 
     async handle(Chisato: Client, message: MessageSerialize): Promise<void> {
         try {
@@ -64,6 +66,17 @@ export class MessageHandler {
 
             // Get command if exists 
             if (!context) return;
+            if (context.isGroup) {
+    const securityHandled = await this.kingdomSecurityHandler.handle(
+        Chisato,
+        message,
+        context.isOwner,
+        context.isGroupAdmin,
+        context.isBotAdmin
+    );
+
+    if (securityHandled) return;
+            }
 
             if (
                 !message.fromMe &&
