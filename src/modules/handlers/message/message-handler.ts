@@ -107,8 +107,42 @@ export class MessageHandler {
                 }
             }
 
-            // Restrict bot commands to owner and allowed numbers
+            // Restrict bot commands to owner and allowed noble members
 if (context.isCmd && !context.isOwner) {
+    const senderNumbers = new Set<string>();
+
+    const rawSender = String(context.sender || "");
+    const rawNumber = rawSender.split("@")[0].replace(/\D/g, "");
+
+    if (rawNumber) senderNumbers.add(rawNumber);
+
+    try {
+        const resolved = await resolveToPnJid(
+            Chisato,
+            context.sender,
+            context.groupMetadata
+        );
+
+        const resolvedNumber = String(resolved || "")
+            .split("@")[0]
+            .replace(/\D/g, "");
+
+        if (resolvedNumber) senderNumbers.add(resolvedNumber);
+    } catch {}
+
+    const allowed = (config.allowedNumbers || []).some((number) =>
+        senderNumbers.has(String(number).replace(/\D/g, ""))
+    );
+
+    if (!allowed) {
+        await Chisato.sendText(
+            context.from,
+            "⛔ عذرًا، استخدام أوامر البوت مقتصر على المالك وأعضاء النخبة.",
+            message
+        );
+        return;
+    }
+}
     let senderNumber = String(context.sender || "").split("@")[0];
 
     try {
