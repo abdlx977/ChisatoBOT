@@ -201,7 +201,7 @@ function makeQuestion(game: Exclude<GameType, "random">): Question {
         return {
             game,
             answer,
-            acceptedAnswers: [normalize(letters.join(" "))],
+            acceptedAnswers: [normalizeDecomposed(letters.join(" "))],
             prompt: `🔤 *فكّك اسم الشخصية واكتب حروفه مفصولة:*\n\n🌟 *${answer}*\n\n`,
         };
     }
@@ -245,14 +245,30 @@ function createQuestions(game: GameType, total: number): Question[] {
     ];
 
     const questions: Question[] = [];
+let randomGames: Exclude<GameType, "random">[] = [];
 
-    for (let i = 0; i < total; i++) {
-        const selected =
-            game === "random"
-                ? available[Math.floor(Math.random() * available.length)]
-                : game;
+for (let i = 0; i < total; i++) {
+    if (game === "random") {
+        if (randomGames.length === 0) {
+            randomGames = shuffle(available);
 
+            if (
+                questions.length > 0 &&
+                randomGames[randomGames.length - 1] ===
+                    questions[questions.length - 1].game
+            ) {
+                [randomGames[0], randomGames[randomGames.length - 1]] = [
+                    randomGames[randomGames.length - 1],
+                    randomGames[0],
+                ];
+            }
+        }
+
+        const selected = randomGames.pop()!;
         questions.push(makeQuestion(selected));
+    } else {
+        questions.push(makeQuestion(game));
+    }
     }
 
     return questions;
@@ -449,6 +465,7 @@ async function nextRound(
     if (!question) return;
 
     event.currentGame = question.game;
+    event.seconds = question.game === "flags" ? 30 : 15;
     event.answer = question.answer;
     event.acceptedAnswers = question.acceptedAnswers;
     event.answered = false;
@@ -548,8 +565,12 @@ export async function handleEventMessage(
     if (!event || !body || body.startsWith(".")) return false;
     if (event.answered) return false;
 
-    if (!event.acceptedAnswers.includes(normalize(body))) {
-        return false;
+    const normalizedAnswer =
+    event.currentGame === "decompose"
+        ? normalizeDecomposed(body)
+        : normalize(body);
+
+if (!event.acceptedAnswers.includes(normalizedAnswer)) {
     }
 
     event.answered = true;
