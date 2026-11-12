@@ -1,4 +1,6 @@
+
 import { configService } from "../../../core/config/config.service";
+import { Database } from "../../../infrastructure/database/database.service";
 import { resolveToPnJid } from "../../../utils/jid-resolver";
 import { formatExample } from "../../../utils";
 
@@ -40,7 +42,7 @@ export class CommandValidator {
                 pushName: context.pushName,
                 context: context
             });
-            
+
             await Chisato.sendText(
                 context.from,
                 formattedExample,
@@ -52,26 +54,36 @@ export class CommandValidator {
         // Check owner permission
         let senderNumber = String(context.sender || "").split("@")[0];
 
-try {
-    const resolved = await resolveToPnJid(Chisato, context.sender);
-    if (resolved) {
-        senderNumber = resolved.split("@")[0];
-    }
-} catch {}
+        try {
+            const resolved = await resolveToPnJid(Chisato, context.sender);
+            if (resolved) {
+                senderNumber = resolved.split("@")[0];
+            }
+        } catch {}
 
-const isNoble = (config.allowedNumbers || []).some(
-    number =>
-        String(number).replace(/\D/g, "") ===
-        senderNumber.replace(/\D/g, "")
-);
+        senderNumber = senderNumber.replace(/\D/g, "");
 
-const nobleRestrictedCommands = ["add-noble", "remove-noble"];
+        let isNoble = false;
 
-if (
-    command.isOwner &&
-    !context.isOwner &&
-    (!isNoble || nobleRestrictedCommands.includes(command.name))
-) {
+        if (senderNumber) {
+            try {
+                const nobleMember = await Database.nobleMember.findUnique({
+                    where: { phoneNumber: senderNumber },
+                });
+
+                isNoble = Boolean(nobleMember);
+            } catch {
+                isNoble = false;
+            }
+        }
+
+        const nobleRestrictedCommands = ["add-noble", "remove-noble"];
+
+        if (
+            command.isOwner &&
+            !context.isOwner &&
+            (!isNoble || nobleRestrictedCommands.includes(command.name))
+        ) {
             await Chisato.sendText(
                 context.from,
                 "*「 ! 」* Sorry, This command can only be used by the Bot Owner!",
