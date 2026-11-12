@@ -6,12 +6,24 @@ import { configService } from "../../../core/config/config.service";
 const WARNING_WINDOW = 10 * 60 * 1000;
 const SPAM_WINDOW = 10 * 1000;
 const MAX_MESSAGES = 6;
+const SAME_MESSAGE_LIMIT = 3;
 
-const warnings = new Map<string, { count: number; expiresAt: number }>();
-const activity = new Map<string, { messages: string[]; times: number[] }>();
+type ActivityRecord = {
+    text: string;
+    time: number;
+};
+
+const warnings = new Map<
+    string,
+    { count: number; expiresAt: number }
+>();
+
+const activity = new Map<string, ActivityRecord[]>();
 
 function cleanNumber(value: string): string {
-    return String(value || "").split("@")[0].replace(/\D/g, "");
+    return String(value || "")
+        .split("@")[0]
+        .replace(/\D/g, "");
 }
 
 function isNoble(sender: string): boolean {
@@ -23,18 +35,11 @@ function isNoble(sender: string): boolean {
     );
 }
 
+// Block WhatsApp group invitations and obvious WhatsApp impersonation links.
+// Ordinary links and URL shorteners remain allowed.
 function isSuspiciousUrl(text: string): boolean {
-    const urls = text.match(/https?:\/\/[^\s]+|www\.[^\s]+/gi) || [];
-
-    const suspiciousHosts = [
-        "chat.whatsapp.com",
-        "bit.ly",
-        "tinyurl.com",
-        "cutt.ly",
-        "is.gd",
-        "rb.gy",
-        "shorturl.at",
-    ];
+    const urls =
+        text.match(/https?:\/\/[^\s]+|www\.[^\s]+/gi) || [];
 
     for (const value of urls) {
         try {
@@ -44,15 +49,20 @@ function isSuspiciousUrl(text: string): boolean {
 
             const host = url.hostname.toLowerCase();
 
+            if (host === "chat.whatsapp.com") {
+                return true;
+            }
+
             if (
-                host === "chat.whatsapp.com" ||
-                suspiciousHosts.includes(host) ||
-                host.startsWith("xn--") ||
-                /^\d{1,3}(\.\d{1,3}){3}$/.test(host)
+                host.includes("whatsapp") &&
+                host !== "whatsapp.com" &&
+                !host.endsWith(".whatsapp.com")
             ) {
                 return true;
             }
-        } catch {}
+        } catch {
+            continue;
+        }
     }
 
     return false;
@@ -70,17 +80,19 @@ export class KingdomSecurityHandler {
 
         const { from, sender, body, type } = message;
 
-        // Owner, group admins and noble members are exempt.
-        if (isOwner || isGroupAdmin || isNoble(sender)) return false;
+        // Exempt owner, group admins and noble members.
+        if (isOwner || isGroupAdmin || isNoble(sender)) {
+            return false;
+        }
 
-        // The bot must be an admin to moderate members.
+        // Moderation requires the bot to be a group admin.
         if (!isBotAdmin) return false;
 
         const key = `${from}:${sender}`;
         const inviteMessage = type === "groupInviteMessage";
         const suspiciousLink = isSuspiciousUrl(body || "");
 
-        // Dangerous group invitations and suspicious links: immediate removal.
+        // Immediate removal for group invitations and suspicious links.
         if (inviteMessage || suspiciousLink) {
             try {
                 await Chisato.sendMessage(from, {
@@ -95,7 +107,7 @@ export class KingdomSecurityHandler {
 
                 await Chisato.sendText(
                     from,
-                    `🛡️ *حماية المملكة*\n\nتم طرد @${cleanNumber(sender)} بسبب إرسال رابط أو دعوة مشبوهة.`,
+                    `🛡️ *حماية المملكة*\n\nتم طرد @${cleanNumber(sender)} بسبب إرسال دعوة مجموعة أو رابط مشبوه.`,
                     null,
                     { mentions: [sender] }
                 );
@@ -106,44 +118,47 @@ export class KingdomSecurityHandler {
             return true;
         }
 
-        // Spam detection: repeated messages or too many messages quickly.
+        // Track message activity during the spam window.
         const now = Date.now();
-        let record = activity.get(key);
+        const currentText = (body || type || "")
+            .trim()
+            .toLowerCase();
 
-        if (!record) {
-            record = { messages: [], times: [] };
-        }
+        let records = activity.get(key) || [];
 
-        record.messages = record.messages.filter(
-            (_, index) => record!.times[index] > now - SPAM_WINDOW
-        );
-        record.times = record.times.filter(
-            (time) => time > now - SPAM_WINDOW
+        records = records.filter(
+            (record) => record.time > now - SPAM_WINDOW
         );
 
-        record.messages.push((body || type || "").trim().toLowerCase());
-        record.times.push(now);
-        activity.set(key, record);
+        records.push({
+            text: currentText,
+            time: now,
+        });
 
-        const sameMessageCount = record.messages.filter(
-            (item) => item === (body || type || "").trim().toLowerCase()
+        activity.set(key, records);
+
+        const sameMessageCount = records.filter(
+            (record) => record.text === currentText
         ).length;
 
-        if (
-            record.times.length < MAX_MESSAGES &&
-            sameMessageCount < 3
-        ) {
-            return false;
-        }
+        const isSpam =
+            records.length >= MAX_MESSAGES ||
+            sameMessageCount >= SAME_MESSAGE_LIMIT;
+
+        if (!isSpam) return false;
 
         activity.delete(key);
 
+        // Delete the message that triggered spam detection.
         try {
             await Chisato.sendMessage(from, {
                 delete: message.key,
             });
-        } catch {}
+        } catch (error) {
+            console.error("Spam message deletion failed:", error);
+        }
 
+        // Count warnings for this member.
         let warning = warnings.get(key);
 
         if (!warning || now > warning.expiresAt) {
@@ -156,15 +171,16 @@ export class KingdomSecurityHandler {
         warning.count++;
         warnings.set(key, warning);
 
+        // Third violation: remove the member.
         if (warning.count >= 3) {
-            warnings.delete(key);
-
             try {
                 await Chisato.groupParticipantsUpdate(
                     from,
                     [sender],
                     "remove"
                 );
+
+                warnings.delete(key);
 
                 await Chisato.sendText(
                     from,
@@ -175,16 +191,22 @@ export class KingdomSecurityHandler {
             } catch (error) {
                 console.error("Spam removal failed:", error);
             }
-        } else {
-            const remaining = 3 - warning.count;
 
-            await Chisato.sendText(
-                from,
-                `⚠️ *تحذير سبام ${warning.count}/3*\n\n@${cleanNumber(sender)} يرجى عدم إغراق المجموعة بالرسائل.\nالمخالفة القادمة قد تؤدي إلى الطرد.`,
-                null,
-                { mentions: [sender] }
-            );
+            return true;
         }
+
+        // First and second warnings.
+        const warningText =
+            warning.count === 1
+                ? "يرجى عدم إغراق المجموعة بالرسائل."
+                : "⚠️ هذا تحذيرك الأخير! المخالفة القادمة ستؤدي إلى الطرد.";
+
+        await Chisato.sendText(
+            from,
+            `⚠️ *تحذير سبام ${warning.count}/3*\n\n@${cleanNumber(sender)}\n${warningText}`,
+            null,
+            { mentions: [sender] }
+        );
 
         return true;
     }
