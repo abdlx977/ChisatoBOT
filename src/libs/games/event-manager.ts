@@ -571,7 +571,8 @@ export async function handleEventMessage(
         : normalize(body);
 
 if (!event.acceptedAnswers.includes(normalizedAnswer)) {
-    }
+    return false;
+}
 
     event.answered = true;
 
