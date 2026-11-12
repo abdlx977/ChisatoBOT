@@ -175,3 +175,9 @@ model GroupAura {
   @@unique([groupId, userId])
   @@index([groupId, aura])
 }
+
+model NobleMember {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  phoneNumber String   @unique
+  createdAt   DateTime @default(now())
+}
