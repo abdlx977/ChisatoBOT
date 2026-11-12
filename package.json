@@ -18,7 +18,7 @@
         "prisma:migrate": "prisma migrate dev",
         "prisma:studio": "prisma studio",
         "prisma:push": "prisma db push",
-        "postinstall": "prisma db push && prisma generate && node scripts/patch-baileys.cjs", 
+        "postinstall": "prisma generate && node scripts/patch-baileys.cjs", 
         "pm2:start": "pm2 start dist/auth/connect.js && pm2 flush connect && pm2 logs connect",
         "pm2:restart": "pm2 reload connect && pm2 flush connect && pm2 logs connect"
     },
