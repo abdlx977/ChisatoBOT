@@ -1,6 +1,6 @@
 
 import type { ConfigCommands } from "../../types/structure/commands";
-import { Database } from "../../infrastructure/database/database.service";
+import { configService } from "../../core/config/config.service";
 import { resolveToPnJid } from "../../utils/jid-resolver";
 
 export default {
@@ -25,11 +25,7 @@ export default {
         const target = message.quoted?.sender || message.mentions?.[0];
 
         if (!target) {
-            await Chisato.sendText(
-                from,
-                "⚠️ منشن الشخص أو رد على رسالته أولاً.",
-                message
-            );
+            await Chisato.sendText(from, "⚠️ منشن الشخص أو رد على رسالته أولاً.", message);
             return;
         }
 
@@ -39,41 +35,31 @@ export default {
             resolved = (await resolveToPnJid(Chisato, target)) || target;
         } catch {}
 
-        const number = String(resolved)
-            .split("@")[0]
-            .replace(/\D/g, "");
+        const number = String(resolved).split("@")[0].replace(/\D/g, "");
 
         if (!number) {
             await Chisato.sendText(from, "❌ تعذر تحديد رقم الشخص.", message);
             return;
         }
 
-        try {
-            const result = await Database.nobleMember.deleteMany({
-                where: { phoneNumber: number },
-            });
+        const config = configService.getConfig();
+        const allowed = config.allowedNumbers || [];
+        const updated = allowed.filter(
+            (n) => String(n).replace(/\D/g, "") !== number
+        );
 
-            if (result.count === 0) {
-                await Chisato.sendText(
-                    from,
-                    "ℹ️ هذا الشخص ليس ضمن النخبة.",
-                    message
-                );
-                return;
-            }
-
-            await Chisato.sendText(
-                from,
-                `✅ تمت إزالة @${number} من النخبة.`,
-                message,
-                { mentions: [target] }
-            );
-        } catch (error) {
-            await Chisato.sendText(
-                from,
-                "❌ حدث خطأ أثناء إزالة العضو. حاول مرة أخرى.",
-                message
-            );
+        if (updated.length === allowed.length) {
+            await Chisato.sendText(from, "ℹ️ هذا الشخص ليس ضمن النخبة.", message);
+            return;
         }
+
+        configService.updateConfig({ allowedNumbers: updated });
+
+        await Chisato.sendText(
+            from,
+            `✅ تمت إزالة @${number} من النخبة.`,
+            message,
+            { mentions: [target] }
+        );
     },
 } satisfies ConfigCommands;
