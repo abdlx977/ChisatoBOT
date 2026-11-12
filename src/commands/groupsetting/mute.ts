@@ -2,19 +2,28 @@ import type { ConfigCommands } from "../../types/structure/commands";
 
 export default {
     name: "mute",
-    alias: ["mutebot"],
-    usage: "",
+    alias: ["كتم", "mutebot"],
     category: "group setting",
-    description: "Mute bot in group",
+    description: "كتم المجموعة والسماح للمشرفين فقط بالكتابة",
     isGroup: true,
     isGroupAdmin: true,
-    async run({ Chisato, from, prefix, message, Database }) {
-        let index = await Database.Group.getSettings(from);
-        if (!index.mute) {
-            await Database.Group.updateSettings(from, { mute: true });
-            await Chisato.sendText(from, `Successfully muted bot. To unmute, use the ${prefix}unmute command.`, message);
-        } else {
-            await Chisato.sendText(from, `Bot is already muted. To unmute, use the ${prefix}unmute command.`, message);
+    isBotAdmin: true,
+
+    async run({ Chisato, from, message, groupMetadata }) {
+        if (groupMetadata?.announce) {
+            return Chisato.sendText(
+                from,
+                "🔒 المجموعة مكتومة بالفعل، المشرفون فقط يستطيعون الكتابة.",
+                message
+            );
         }
+
+        await Chisato.groupSettingUpdate(from, "announcement");
+
+        await Chisato.sendText(
+            from,
+            "🔒 *تم كتم المجموعة!*\n\nالمشرفون فقط يستطيعون إرسال الرسائل الآن.",
+            message
+        );
     },
 } satisfies ConfigCommands;
