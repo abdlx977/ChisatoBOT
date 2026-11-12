@@ -21,7 +21,6 @@ import { StringUtils } from "../../../utils/core/string-utils";
 import { formatExample } from "../../../utils";
 import { tryConsumeLoginOtp } from "../../../dashboard/routes/group-auth";
 import { resolveToPnJid } from "../../../utils/jid-resolver";
-import { Database as PrismaDatabase } from "../../../infrastructure/database/database.service";
 import { handleEventMessage } from "../../../libs/games/event-manager";
 
 export class MessageHandler {
@@ -117,7 +116,6 @@ export class MessageHandler {
                 }
             }
 
-            
             // Restrict bot commands to owner and allowed noble members
             if (context.isCmd && !context.isOwner) {
                 const senderNumbers = new Set<string>();
@@ -141,15 +139,11 @@ export class MessageHandler {
                     if (resolvedNumber) senderNumbers.add(resolvedNumber);
                 } catch {}
 
-                const nobleMember = await PrismaDatabase.nobleMember.findFirst({
-                    where: {
-                        phoneNumber: {
-                            in: [...senderNumbers],
-                        },
-                    },
-                });
+                const allowed = (config.allowedNumbers || []).some((number) =>
+                    senderNumbers.has(String(number).replace(/\D/g, ""))
+                );
 
-                if (!nobleMember) {
+                if (!allowed) {
                     await Chisato.sendText(
                         context.from,
                         "⛔ عذرًا، استخدام أوامر البوت مقتصر على المالك وأعضاء النخبة.",
@@ -159,7 +153,6 @@ export class MessageHandler {
                     return;
                 }
             }
-
 
             // Handle event messages
             if (context.isGroup) {
