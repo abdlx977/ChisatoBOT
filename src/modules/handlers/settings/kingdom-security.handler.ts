@@ -56,7 +56,7 @@ function isNoble(sender: string): boolean {
     const number = cleanNumber(sender);
 
     return (config.allowedNumbers || []).some(
-        (allowed) => cleanNumber(allowed) === number
+        allowed => cleanNumber(allowed) === number
     );
 }
 
@@ -91,6 +91,49 @@ function isSuspiciousUrl(text: string): boolean {
     return false;
 }
 
+/**
+ * يبحث داخل محتوى الرسالة عن جهات الاتصال،
+ * حتى لو كانت الرسالة داخل wrapper أو تحتوي عدة جهات اتصال.
+ */
+function containsContactPayload(
+    value: unknown,
+    depth = 0,
+    seen = new WeakSet<object>()
+): boolean {
+    if (!value || typeof value !== "object" || depth > 8) {
+        return false;
+    }
+
+    if (ArrayBuffer.isView(value)) {
+        return false;
+    }
+
+    if (seen.has(value)) {
+        return false;
+    }
+
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+        return value.some(item =>
+            containsContactPayload(item, depth + 1, seen)
+        );
+    }
+
+    const data = value as Record<string, unknown>;
+
+    if (
+        Object.prototype.hasOwnProperty.call(data, "contactMessage") ||
+        Object.prototype.hasOwnProperty.call(data, "contactsArrayMessage")
+    ) {
+        return true;
+    }
+
+    return Object.values(data).some(item =>
+        containsContactPayload(item, depth + 1, seen)
+    );
+}
+
 export class KingdomSecurityHandler {
     async handle(
         Chisato: Client,
@@ -111,44 +154,81 @@ export class KingdomSecurityHandler {
         // Moderation requires the bot to be a group admin.
         if (!isBotAdmin) return false;
 
-        // Define key before using it anywhere.
         const key = `${from}:${sender}`;
 
-        const inviteMessage = type === "groupInviteMessage";
+        const rawMessage = (message as any).message;
+
+        const inviteMessage =
+            type === "groupInviteMessage" ||
+            containsMessageType(rawMessage, "groupInviteMessage");
 
         const contactMessage =
             type === "contactMessage" ||
-            type === "contactsArrayMessage";
+            type === "contactsArrayMessage" ||
+            containsContactPayload(rawMessage);
 
         const suspiciousLink = isSuspiciousUrl(body || "");
 
         // Immediate removal for contacts, group invitations and suspicious links.
         if (inviteMessage || suspiciousLink || contactMessage) {
+            const reason = contactMessage
+                ? "إرسال جهات اتصال"
+                : inviteMessage
+                    ? "إرسال دعوة مجموعة"
+                    : "إرسال رابط مشبوه";
+
+            // Try deleting the message, but never let deletion failure
+            // prevent the bot from attempting to remove the sender.
             try {
                 await Chisato.sendMessage(from, {
                     delete: message.key,
                 });
+            } catch (error) {
+                console.error(
+                    "Kingdom security message deletion failed:",
+                    error
+                );
+            }
 
+            let removed = false;
+
+            // Attempt removal independently.
+            try {
                 await Chisato.groupParticipantsUpdate(
                     from,
                     [sender],
                     "remove"
                 );
 
-                const reason = contactMessage
-                    ? "إرسال جهة اتصال"
-                    : inviteMessage
-                        ? "إرسال دعوة مجموعة"
-                        : "إرسال رابط مشبوه";
-
-                await Chisato.sendText(
-                    from,
-                    `🛡️ *حماية المملكة*\n\nتم طرد @${cleanNumber(sender)} بسبب ${reason}.`,
-                    null,
-                    { mentions: [sender] }
-                );
+                removed = true;
             } catch (error) {
-                console.error("Kingdom security action failed:", error);
+                console.error(
+                    "Kingdom security member removal failed:",
+                    error
+                );
+            }
+
+            try {
+                if (removed) {
+                    await Chisato.sendText(
+                        from,
+                        `🛡️ *حماية المملكة*\n\nتم طرد @${cleanNumber(sender)} بسبب ${reason}.`,
+                        null,
+                        { mentions: [sender] }
+                    );
+                } else {
+                    await Chisato.sendText(
+                        from,
+                        `🛡️ *حماية المملكة*\n\nتم رصد ${reason} من @${cleanNumber(sender)}، لكن تعذّر طرده. تأكد أن البوت مشرف في المجموعة.`,
+                        null,
+                        { mentions: [sender] }
+                    );
+                }
+            } catch (error) {
+                console.error(
+                    "Kingdom security notification failed:",
+                    error
+                );
             }
 
             return true;
@@ -163,7 +243,7 @@ export class KingdomSecurityHandler {
         let records = activity.get(key) || [];
 
         records = records.filter(
-            (record) => record.time > now - SPAM_WINDOW
+            record => record.time > now - SPAM_WINDOW
         );
 
         records.push({
@@ -174,7 +254,7 @@ export class KingdomSecurityHandler {
         activity.set(key, records);
 
         const sameMessageCount = records.filter(
-            (record) => record.text === currentText
+            record => record.text === currentText
         ).length;
 
         const isSpam =
@@ -246,4 +326,44 @@ export class KingdomSecurityHandler {
 
         return true;
     }
+}
+
+/**
+ * يبحث عن نوع رسالة معيّن داخل الرسالة المغلّفة.
+ */
+function containsMessageType(
+    value: unknown,
+    targetType: string,
+    depth = 0,
+    seen = new WeakSet<object>()
+): boolean {
+    if (!value || typeof value !== "object" || depth > 8) {
+        return false;
+    }
+
+    if (ArrayBuffer.isView(value)) {
+        return false;
+    }
+
+    if (seen.has(value)) {
+        return false;
+    }
+
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+        return value.some(item =>
+            containsMessageType(item, targetType, depth + 1, seen)
+        );
+    }
+
+    const data = value as Record<string, unknown>;
+
+    if (Object.prototype.hasOwnProperty.call(data, targetType)) {
+        return true;
+    }
+
+    return Object.values(data).some(item =>
+        containsMessageType(item, targetType, depth + 1, seen)
+    );
 }
