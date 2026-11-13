@@ -12,14 +12,51 @@ export interface AnimeNewsItem {
 
 const FEEDS = [
     {
-        name: "Anime News Network",
+        name: "شبكة أخبار الأنمي",
         url: "https://www.animenewsnetwork.com/news/rss.xml?ann-edition=us",
     },
     {
-        name: "Crunchyroll",
+        name: "كرانشي رول",
         url: "https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss",
     },
 ];
+
+const translationCache = new Map<string, string>();
+
+async function translateToArabic(value: string): Promise<string> {
+    const input = value.trim();
+    if (!input) return "";
+
+    const cached = translationCache.get(input);
+    if (cached) return cached;
+
+    try {
+        const { data } = await Axios.get(
+            "https://translate.googleapis.com/translate_a/single",
+            {
+                params: {
+                    client: "gtx",
+                    sl: "auto",
+                    tl: "ar",
+                    dt: "t",
+                    q: input,
+                },
+                timeout: 12000,
+            }
+        );
+
+        const translated = Array.isArray(data?.[0])
+            ? data[0].map((part: any) => part?.[0] || "").join("").trim()
+            : "";
+
+        if (!translated) return input;
+
+        translationCache.set(input, translated);
+        return translated;
+    } catch {
+        return input;
+    }
+}
 
 async function fetchFeed(
     feed: (typeof FEEDS)[number]
@@ -40,6 +77,7 @@ async function fetchFeed(
 
         const title = item.find("title").first().text().trim();
         const link = item.find("link").first().text().trim();
+
         const rawDate =
             item.find("pubDate").first().text().trim() ||
             item.find("date").first().text().trim();
@@ -60,7 +98,7 @@ async function fetchFeed(
         results.push({
             title,
             link,
-            date: new Date(timestamp).toLocaleDateString("en-GB"),
+            date: new Date(timestamp).toLocaleDateString("ar"),
             timestamp,
             description: description.slice(0, 220),
             source: feed.name,
@@ -99,7 +137,15 @@ export async function getLatestAnimeNews(
         }
     }
 
-    return [...uniqueNews.values()]
+    const latest = [...uniqueNews.values()]
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, limit);
-          }
+
+    return Promise.all(
+        latest.map(async (item) => ({
+            ...item,
+            title: await translateToArabic(item.title),
+            description: await translateToArabic(item.description),
+        }))
+    );
+                           }
