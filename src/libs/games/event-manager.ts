@@ -1,5 +1,6 @@
 
 import { databaseService } from "../../infrastructure/database/database.service";
+import { createImageQuestion } from "./image-question";
 
 type GameType =
     | "writing"
@@ -8,7 +9,11 @@ type GameType =
     | "join"
     | "reverse"
     | "scramble"
+    | "characters"
+    | "eyes"
     | "random";
+
+type PlayableGame = Exclude<GameType, "random">;
 
 type EventSetup = {
     step: "games" | "game" | "rounds";
@@ -23,10 +28,11 @@ type FlagQuestion = {
 };
 
 type Question = {
-    game: Exclude<GameType, "random">;
+    game: PlayableGame;
     answer: string;
     acceptedAnswers: string[];
     prompt: string;
+    imageUrl?: string;
 };
 
 type ActiveEvent = {
@@ -37,7 +43,7 @@ type ActiveEvent = {
     seconds: number;
     answer: string;
     acceptedAnswers: string[];
-    currentGame: Exclude<GameType, "random">;
+    currentGame: PlayableGame;
     scores: Map<string, number>;
     timer: ReturnType<typeof setTimeout> | null;
     answered: boolean;
@@ -78,7 +84,6 @@ const CHARACTERS = [
     "غيتو", "يوتا", "توجي", "نانامي", "ماكي",
     "تشوسو", "ماهيتو",
     "تينما", "يوهان", "نينا", "لونغه", "غريمر",
-    "إيفا", "روبرتو",
     "ايشيغو", "روكيا", "اوريهيمي", "اوريـو",
     "بياكويا", "كينباتشي", "ايزن", "يورويتشي",
     "توشيرو", "رينجي",
@@ -86,7 +91,6 @@ const CHARACTERS = [
     "شيغاراكي", "دابي", "اوراراكا", "ايزاوا",
     "هوكس", "انديفور",
     "استا", "يونو", "نويل", "يامي", "يوليوس",
-    "نيرو", "فانيكا", "زاغريد",
     "غينتوكي", "كاغورا", "شينباتشي",
     "تاكاسوجي", "كاموي", "كاتسورا",
     "هيجيكاتا", "أوكيتا", "كوندو",
@@ -168,7 +172,18 @@ function shuffle<T>(items: T[]): T[] {
     return result;
 }
 
-function makeQuestion(game: Exclude<GameType, "random">): Question {
+const ALL_GAMES: PlayableGame[] = [
+    "writing",
+    "flags",
+    "decompose",
+    "join",
+    "reverse",
+    "scramble",
+    "characters",
+    "eyes",
+];
+
+function makeQuestion(game: PlayableGame): Question {
     if (game === "flags") {
         const flag = FLAG_QUESTIONS[
             Math.floor(Math.random() * FLAG_QUESTIONS.length)
@@ -178,7 +193,16 @@ function makeQuestion(game: Exclude<GameType, "random">): Question {
             game,
             answer: flag.country,
             acceptedAnswers: [flag.country, ...flag.aliases].map(normalize),
-            prompt: `🏳️ *خمن اسم الدولة!*\n\n`,
+            prompt: "🏳️ *خمن اسم الدولة!*",
+        };
+    }
+
+    if (game === "characters" || game === "eyes") {
+        return {
+            game,
+            answer: "",
+            acceptedAnswers: [],
+            prompt: "",
         };
     }
 
@@ -193,7 +217,7 @@ function makeQuestion(game: Exclude<GameType, "random">): Question {
             game,
             answer,
             acceptedAnswers: [normalize(answer)],
-            prompt: `✍️ *اكتب اسم الشخصية التالية:*\n\n🌟 *${answer}*\n\n`,
+            prompt: `✍️ *اكتب اسم الشخصية التالية:*\n\n🌟 *${answer}*`,
         };
     }
 
@@ -202,7 +226,7 @@ function makeQuestion(game: Exclude<GameType, "random">): Question {
             game,
             answer,
             acceptedAnswers: [normalizeDecomposed(letters.join(" "))],
-            prompt: `🔤 *فكّك اسم الشخصية واكتب حروفه مفصولة:*\n\n🌟 *${answer}*\n\n`,
+            prompt: `🔤 *فكّك اسم الشخصية واكتب حروفه مفصولة:*\n\n🌟 *${answer}*`,
         };
     }
 
@@ -211,7 +235,7 @@ function makeQuestion(game: Exclude<GameType, "random">): Question {
             game,
             answer,
             acceptedAnswers: [normalize(answer)],
-            prompt: `🧩 *اجمع الحروف واكتب اسم الشخصية:*\n\n🌟 *${letters.join(" ")}*\n\n`,
+            prompt: `🧩 *اجمع الحروف واكتب اسم الشخصية:*\n\n🌟 *${letters.join(" ")}*`,
         };
     }
 
@@ -220,7 +244,7 @@ function makeQuestion(game: Exclude<GameType, "random">): Question {
             game,
             answer,
             acceptedAnswers: [normalize(answer)],
-            prompt: `🔄 *اكتب الاسم بشكل صحيح بعد عكسه:*\n\n🌟 *${[...answer].reverse().join("")}*\n\n`,
+            prompt: `🔄 *اكتب الاسم بشكل صحيح بعد عكسه:*\n\n🌟 *${[...answer].reverse().join("")}*`,
         };
     }
 
@@ -230,45 +254,35 @@ function makeQuestion(game: Exclude<GameType, "random">): Question {
         game: "scramble",
         answer,
         acceptedAnswers: [normalize(answer)],
-        prompt: `🔀 *رتّب الحروف واكتشف اسم الشخصية:*\n\n🌟 *${scrambled}*\n\n`,
+        prompt: `🔀 *رتّب الحروف واكتشف اسم الشخصية:*\n\n🌟 *${scrambled}*`,
     };
 }
 
 function createQuestions(game: GameType, total: number): Question[] {
-    const available: Exclude<GameType, "random">[] = [
-        "writing",
-        "decompose",
-        "join",
-        "reverse",
-        "scramble",
-        "flags",
-    ];
-
     const questions: Question[] = [];
-let randomGames: Exclude<GameType, "random">[] = [];
+    let randomGames: PlayableGame[] = [];
 
-for (let i = 0; i < total; i++) {
-    if (game === "random") {
-        if (randomGames.length === 0) {
-            randomGames = shuffle(available);
+    for (let i = 0; i < total; i++) {
+        if (game === "random") {
+            if (randomGames.length === 0) {
+                randomGames = shuffle(ALL_GAMES);
 
-            if (
-                questions.length > 0 &&
-                randomGames[randomGames.length - 1] ===
-                    questions[questions.length - 1].game
-            ) {
-                [randomGames[0], randomGames[randomGames.length - 1]] = [
-                    randomGames[randomGames.length - 1],
-                    randomGames[0],
-                ];
+                if (
+                    questions.length > 0 &&
+                    randomGames[randomGames.length - 1].toString() ===
+                        questions[questions.length - 1].game
+                ) {
+                    [randomGames[0], randomGames[randomGames.length - 1]] = [
+                        randomGames[randomGames.length - 1],
+                        randomGames[0],
+                    ];
+                }
             }
-        }
 
-        const selected = randomGames.pop()!;
-        questions.push(makeQuestion(selected));
-    } else {
-        questions.push(makeQuestion(game));
-    }
+            questions.push(makeQuestion(randomGames.pop()!));
+        } else {
+            questions.push(makeQuestion(game));
+        }
     }
 
     return questions;
@@ -293,7 +307,7 @@ async function startEvent(
         questions: createQuestions(game, roundCount),
         round: 1,
         total: roundCount,
-        seconds: game === "flags" ? 30 : 15,
+        seconds: 15,
         answer: "",
         acceptedAnswers: [],
         currentGame: "writing",
@@ -310,7 +324,7 @@ async function startEvent(
         `🎉 *بدأت الفعالية!*\n\n` +
         `🎮 نوع الفعالية: ${game === "random" ? "عشوائي" : game === "flags" ? "أعلام الدول" : "تحدي الألعاب"}\n` +
         `🏁 عدد الجولات: ${event.total}\n` +
-        `⏱️ مدة الجولة: ${event.seconds} ثانية\n` +
+        `⏱️ مدة الجولة: 15 ثانية (الأعلام 30 ثانية)\n` +
         `💎 كل فوز = ${REWARD} AURA`
     );
 
@@ -371,8 +385,10 @@ export async function showEventGames(Chisato: any, from: string) {
         "🔄 العكس\n" +
         "🔀 الترتيب\n" +
         "🏳️ أعلام الدول\n" +
+        "🖼️ تخمين شخصية من صورة\n" +
+        "👁️ تخمين الشخصية من العيون\n" +
         "🎲 العشوائي\n\n" +
-        "اختر اللعبة بكتابة أمرها."
+        "اكتب اسم اللعبة التي تريدها."
     );
 }
 
@@ -472,7 +488,37 @@ async function nextRound(
 
     if (event.timer) clearTimeout(event.timer);
 
-    if (question.game === "flags") {
+    if (question.game === "characters" || question.game === "eyes") {
+        try {
+            const imageQuestion = await createImageQuestion(question.game);
+
+            event.answer = imageQuestion.answer;
+            event.acceptedAnswers = imageQuestion.acceptedAnswers;
+
+            const caption =
+                `${imageQuestion.prompt}\n\n` +
+                `🏁 الجولة ${event.round}/${event.total}\n` +
+                `⏱️ الوقت: ${event.seconds} ثانية\n` +
+                `💎 الجائزة: ${REWARD} AURA`;
+
+            await Chisato.sendImage(
+                from,
+                imageQuestion.imageUrl,
+                caption
+            );
+        } catch (error) {
+            console.error("Image game error:", error);
+
+            await Chisato.sendText(
+                from,
+                "⚠️ تعذر جلب صورة لهذه الجولة، سننتقل للجولة التالية."
+            );
+
+            event.round++;
+            await nextRound(Chisato, from, event);
+            return;
+        }
+    } else if (question.game === "flags") {
         const flag = FLAG_QUESTIONS.find(
             item => item.country === question.answer
         );
@@ -500,7 +546,7 @@ async function nextRound(
             from,
             `✦ 『 🎮 تحدي ${gameNames[question.game]} 』 ✦\n\n` +
             question.prompt +
-            `🏁 الجولة ${event.round}/${event.total}\n` +
+            `\n\n🏁 الجولة ${event.round}/${event.total}\n` +
             `⏱️ الوقت: ${event.seconds} ثانية\n` +
             `💎 الجائزة: ${REWARD} AURA\n` +
             `━━━━━━━━━━━━━━━`
@@ -544,6 +590,52 @@ export async function handleEventMessage(
 ): Promise<boolean> {
     const setup = eventSetups.get(from);
 
+    if (setup?.step === "game") {
+        if (sender !== setup.owner) return false;
+
+        const choice = normalize(body);
+
+        const choices: Record<string, { game: GameType; title: string }> = {
+            "كتابه": { game: "writing", title: "الكتابة" },
+            "writing": { game: "writing", title: "الكتابة" },
+            "تفكيك": { game: "decompose", title: "التفكيك" },
+            "decompose": { game: "decompose", title: "التفكيك" },
+            "جمع": { game: "join", title: "الجمع" },
+            "join": { game: "join", title: "الجمع" },
+            "عكس": { game: "reverse", title: "العكس" },
+            "reverse": { game: "reverse", title: "العكس" },
+            "ترتيب": { game: "scramble", title: "الترتيب" },
+            "رتب": { game: "scramble", title: "الترتيب" },
+            "scramble": { game: "scramble", title: "الترتيب" },
+            "دول": { game: "flags", title: "أعلام الدول" },
+            "اعلام": { game: "flags", title: "أعلام الدول" },
+            "أعلام": { game: "flags", title: "أعلام الدول" },
+            "flags": { game: "flags", title: "أعلام الدول" },
+            "شخصيات": { game: "characters", title: "تخمين الشخصيات من الصور" },
+            "صور": { game: "characters", title: "تخمين الشخصيات من الصور" },
+            "شخصيه": { game: "characters", title: "تخمين الشخصيات من الصور" },
+            "characters": { game: "characters", title: "تخمين الشخصيات من الصور" },
+            "عيون": { game: "eyes", title: "تخمين الشخصية من العيون" },
+            "لعبه العيون": { game: "eyes", title: "تخمين الشخصية من العيون" },
+            "eyes": { game: "eyes", title: "تخمين الشخصية من العيون" },
+            "عشوائي": { game: "random", title: "العشوائي" },
+            "random": { game: "random", title: "العشوائي" },
+        };
+
+        const selected = choices[choice];
+
+        if (!selected) return false;
+
+        await selectGame(
+            Chisato,
+            from,
+            selected.game,
+            selected.title
+        );
+
+        return true;
+    }
+
     if (setup?.step === "rounds") {
         if (sender !== setup.owner) return false;
 
@@ -554,6 +646,7 @@ export async function handleEventMessage(
         };
 
         const selected = choices[body.trim()];
+
         if (!selected || !setup.selectedGame) return false;
 
         await startEvent(Chisato, from, setup.selectedGame, selected);
@@ -566,13 +659,13 @@ export async function handleEventMessage(
     if (event.answered) return false;
 
     const normalizedAnswer =
-    event.currentGame === "decompose"
-        ? normalizeDecomposed(body)
-        : normalize(body);
+        event.currentGame === "decompose"
+            ? normalizeDecomposed(body)
+            : normalize(body);
 
-if (!event.acceptedAnswers.includes(normalizedAnswer)) {
-    return false;
-}
+    if (!event.acceptedAnswers.includes(normalizedAnswer)) {
+        return false;
+    }
 
     event.answered = true;
 
