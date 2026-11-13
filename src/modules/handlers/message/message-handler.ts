@@ -144,12 +144,6 @@ export class MessageHandler {
                 );
 
                 if (!allowed) {
-                    await Chisato.sendText(
-                        context.from,
-                        "⛔ عذرًا، استخدام أوامر البوت مقتصر على المالك وأعضاء النخبة.",
-                        message
-                    );
-
                     return;
                 }
             }
