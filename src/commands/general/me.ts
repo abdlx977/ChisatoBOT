@@ -60,7 +60,7 @@ export default {
                 ? userMetadata
                 : await Database.User.get(target);
 
-            const participant = groupParticipants?.find(
+            const participant: any = groupParticipants?.find(
                 (p: any) =>
                     p.phoneNumber === target ||
                     p.id === target ||
