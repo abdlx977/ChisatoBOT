@@ -385,8 +385,8 @@ export async function showEventGames(Chisato: any, from: string) {
         "🔄 العكس\n" +
         "🔀 الترتيب\n" +
         "🏳️ أعلام الدول\n" +
-        "🖼️ تخمين شخصية من صورة\n" +
-        "👁️ تخمين الشخصية من العيون\n" +
+        "🖼️ شخصية\n" +
+        "👁️ عين\n" +
         "🎲 العشوائي\n\n" +
         "اكتب اسم اللعبة التي تريدها."
     );
@@ -611,13 +611,14 @@ export async function handleEventMessage(
             "اعلام": { game: "flags", title: "أعلام الدول" },
             "أعلام": { game: "flags", title: "أعلام الدول" },
             "flags": { game: "flags", title: "أعلام الدول" },
-            "شخصيات": { game: "characters", title: "تخمين الشخصيات من الصور" },
-            "صور": { game: "characters", title: "تخمين الشخصيات من الصور" },
-            "شخصيه": { game: "characters", title: "تخمين الشخصيات من الصور" },
-            "characters": { game: "characters", title: "تخمين الشخصيات من الصور" },
-            "عيون": { game: "eyes", title: "تخمين الشخصية من العيون" },
-            "لعبه العيون": { game: "eyes", title: "تخمين الشخصية من العيون" },
-            "eyes": { game: "eyes", title: "تخمين الشخصية من العيون" },
+            "شخصيات": { game: "characters", title: "شخصية" },
+            "صور": { game: "characters", title: "شخصية" },
+            "شخصيه": { game: "characters", title: "شخصية" },
+            "characters": { game: "characters", title: "شخصية" },
+            "عين": { game: "eyes", title: "عين" },
+            "عيون": { game: "eyes", title: "عين" },
+            "لعبه العيون": { game: "eyes", title: "عين" },
+            "eyes": { game: "eyes", title: "عين" },
             "عشوائي": { game: "random", title: "العشوائي" },
             "random": { game: "random", title: "العشوائي" },
         };
