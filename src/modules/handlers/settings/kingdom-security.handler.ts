@@ -19,6 +19,7 @@ const warnings = new Map<
 >();
 
 const activity = new Map<string, ActivityRecord[]>();
+
 export function getKingdomSecurityStats(groupId: string) {
     const now = Date.now();
     const prefix = `${groupId}:`;
@@ -59,8 +60,6 @@ function isNoble(sender: string): boolean {
     );
 }
 
-// Block WhatsApp group invitations and obvious WhatsApp impersonation links.
-// Ordinary links and URL shorteners remain allowed.
 function isSuspiciousUrl(text: string): boolean {
     const urls =
         text.match(/https?:\/\/[^\s]+|www\.[^\s]+/gi) || [];
@@ -112,14 +111,18 @@ export class KingdomSecurityHandler {
         // Moderation requires the bot to be a group admin.
         if (!isBotAdmin) return false;
 
+        // Define key before using it anywhere.
+        const key = `${from}:${sender}`;
+
         const inviteMessage = type === "groupInviteMessage";
-const contactMessage =
-    type === "contactMessage" ||
-    type === "contactsArrayMessage";
 
-const suspiciousLink = isSuspiciousUrl(body || "");
+        const contactMessage =
+            type === "contactMessage" ||
+            type === "contactsArrayMessage";
 
-        // Immediate removal for group invitations and suspicious links.
+        const suspiciousLink = isSuspiciousUrl(body || "");
+
+        // Immediate removal for contacts, group invitations and suspicious links.
         if (inviteMessage || suspiciousLink || contactMessage) {
             try {
                 await Chisato.sendMessage(from, {
@@ -132,9 +135,15 @@ const suspiciousLink = isSuspiciousUrl(body || "");
                     "remove"
                 );
 
+                const reason = contactMessage
+                    ? "إرسال جهة اتصال"
+                    : inviteMessage
+                        ? "إرسال دعوة مجموعة"
+                        : "إرسال رابط مشبوه";
+
                 await Chisato.sendText(
                     from,
-                    `🛡️ *حماية المملكة*\n\nتم طرد @${cleanNumber(sender)} بسبب إرسال جهة اتصال أو دعوة مجموعة أو رابط مشبوه.`,
+                    `🛡️ *حماية المملكة*\n\nتم طرد @${cleanNumber(sender)} بسبب ${reason}.`,
                     null,
                     { mentions: [sender] }
                 );
