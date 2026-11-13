@@ -1,174 +1,78 @@
-
 import type { ConfigCommands } from "../../types/structure/commands";
 import { commands, aliasIndex } from "../../libs";
 
-const ARABIC_COMMANDS: Record<string, string> = {
-    animeranking: "ترتيب_الانمي",
-    tracemoe: "البحث_عن_الانمي",
-    news: "الاخبار",
+const COMMANDS: Record<string, { name: string; emoji: string }> = {
+    animeranking: { name: "ترتيب_الانمي", emoji: "🏆" },
+    tracemoe: { name: "البحث_عن_الانمي", emoji: "🔎" },
+    news: { name: "الاخبار", emoji: "📰" },
 
-    instagram: "انستغرام",
-    tiktokvideo: "تيك_توك",
-    tiktokimage: "صور_تيك_توك",
-    facebook: "فيسبوك",
-    threads: "ثريدز",
-    xdownload: "اكس",
+    instagram: { name: "انستغرام", emoji: "📸" },
+    tiktokvideo: { name: "تيك_توك", emoji: "🎵" },
+    tiktokimage: { name: "صور_تيك_توك", emoji: "🖼️" },
+    facebook: { name: "فيسبوك", emoji: "📘" },
+    threads: { name: "ثريدز", emoji: "🧵" },
+    xdownload: { name: "اكس", emoji: "❎" },
 
-    sticker: "ملصق",
-    texttosticker: "ملصق_نصي",
-    emojimix: "دمج_ايموجي",
-    meme: "ميم",
-    ocr: "استخراج_النص",
-    toimage: "ملصق_الى_صورة",
-    animatedtext: "ملصق_متحرك",
+    sticker: { name: "ملصق", emoji: "🎨" },
+    meme: { name: "ميم", emoji: "😂" },
+    emojimix: { name: "دمج_ايموجي", emoji: "😀" },
+    ocr: { name: "استخراج_النص", emoji: "📝" },
 
-    tetris: "تتريس",
-    werewolf: "الذئب",
+    games: { name: "الألعاب", emoji: "🎮" },
+    event: { name: "فعالية", emoji: "🏅" },
+    random: { name: "عشوائي", emoji: "🎲" },
+    tetris: { name: "تتريس", emoji: "🧩" },
+    werewolf: { name: "الذئب", emoji: "🐺" },
 
-    event: "فعالية",
-    "event-stop": "انهاء",
-    random: "عشوائي",
-    games: "الألعاب",
-    decompose: "تفكيك",
-    reverse: "عكس",
-    scramble: "رتب",
-    join: "جمع",
-    flags: "أعلام_الدول",
-    writing: "كتابة",
+    groupinfo: { name: "معلومات_المجموعة", emoji: "👥" },
+    kick: { name: "طرد", emoji: "🚪" },
+    grouplink: { name: "رابط_المجموعة", emoji: "🔗" },
+    tagall: { name: "منشن_الكل", emoji: "📢" },
+    add: { name: "اضف_عضو", emoji: "➕" },
+    promote: { name: "ترقية", emoji: "⬆️" },
+    demote: { name: "سحب_اشراف", emoji: "⬇️" },
 
-    groupinfo: "معلومات_المجموعة",
-    kick: "طرد",
-    grouplink: "رابط_المجموعة",
-    tagall: "منشن_الكل",
-    hidetag: "منشن_صامت",
-    afk: "غائب",
-    add: "اضف_عضو",
-    promote: "ترقية",
-    demote: "سحب_اشراف",
-    grouprevoke: "تغيير_رابط_المجموعة",
+    kingdomsecurity: { name: "الحماية", emoji: "🛡️" },
+    antilink: { name: "منع_الروابط", emoji: "🚫" },
+    antibot: { name: "منع_البوتات", emoji: "🤖" },
+    antidelete: { name: "منع_الحذف", emoji: "🗑️" },
+    mute: { name: "كتم", emoji: "🔇" },
+    unmute: { name: "فتح", emoji: "🔊" },
 
-    antilink: "منع_الروابط",
-    kingdomsecurity: "الحماية",
-    mute: "كتم",
-    unmute: "فتح",
-    antibot: "منع_البوتات",
-    antidelete: "منع_الحذف",
-    gsetting: "اعدادات_المجموعة",
-    announce: "وضع_اعلان",
-    restrict: "تقييد_المجموعة",
-
-    leaderboard: "المتصدرين",
-    level: "مستواي",
-    me: "ملفي",
-    stats: "احصائياتي",
-    botstatistics: "احصائيات_البوت",
-    runtime: "مدة_التشغيل",
-    about: "حول",
-    ping: "سرعة",
+    leaderboard: { name: "المتصدرين", emoji: "🥇" },
+    level: { name: "مستواي", emoji: "⭐" },
+    me: { name: "ملفي", emoji: "👤" },
+    stats: { name: "احصائياتي", emoji: "📊" },
+    runtime: { name: "مدة_التشغيل", emoji: "⏱️" },
+    about: { name: "حول", emoji: "ℹ️" },
+    ping: { name: "سرعة", emoji: "⚡" },
 };
 
 const SECTIONS = [
-    {
-        title: "🎌 عالم الأنمي",
-        commands: ["animeranking", "tracemoe", "news"],
-    },
+    { title: "🎌 الأنمي", commands: ["animeranking", "tracemoe", "news"] },
     {
         title: "📥 التحميل",
-        commands: [
-            "instagram",
-            "tiktokvideo",
-            "tiktokimage",
-            "facebook",
-            "threads",
-            "xdownload",
-        ],
+        commands: ["instagram", "tiktokvideo", "tiktokimage", "facebook", "threads", "xdownload"],
     },
-    {
-        title: "🎨 الصور والتحويلات",
-        commands: [
-            "sticker",
-            "texttosticker",
-            "emojimix",
-            "meme",
-            "ocr",
-            "toimage",
-            "animatedtext",
-        ],
-    },
-    {
-        title: "🎮 الألعاب والفعاليات",
-        commands: [
-            "games",
-            "event",
-            "event-stop",
-            "random",
-            "decompose",
-            "reverse",
-            "scramble",
-            "join",
-            "flags",
-            "writing",
-            "tetris",
-            "werewolf",
-        ],
-    },
+    { title: "🎨 الصور والوسائط", commands: ["sticker", "meme", "emojimix", "ocr"] },
+    { title: "🎮 الألعاب", commands: ["games", "event", "random", "tetris", "werewolf"] },
     {
         title: "👥 إدارة المجموعة",
-        commands: [
-            "groupinfo",
-            "kick",
-            "grouplink",
-            "tagall",
-            "hidetag",
-            "afk",
-            "add",
-            "promote",
-            "demote",
-            "grouprevoke",
-        ],
+        commands: ["groupinfo", "kick", "grouplink", "tagall", "add", "promote", "demote"],
     },
     {
-        title: "🛡️ حماية وإعدادات",
-        commands: [
-            "kingdomsecurity",
-            "antilink",
-            "antibot",
-            "antidelete",
-            "mute",
-            "unmute",
-            "gsetting",
-            "announce",
-            "restrict",
-        ],
+        title: "🛡️ الحماية",
+        commands: ["kingdomsecurity", "antilink", "antibot", "antidelete", "mute", "unmute"],
     },
     {
-        title: "✨ الحساب والأدوات",
-        commands: [
-            "الحساب",
-            "الاغنياء",
-            "leaderboard",
-            "level",
-            "me",
-            "stats",
-            "botstatistics",
-            "runtime",
-            "about",
-            "ping",
-        ],
+        title: "✨ حسابي وأدواتي",
+        commands: ["leaderboard", "level", "me", "stats", "runtime", "about", "ping"],
     },
 ];
 
 export default {
     name: "menu",
-    alias: [
-        "اوامر",
-        "أوامر",
-        "القائمة",
-        "allmenu",
-        "commands",
-        "command",
-        "cmd",
-    ],
+    alias: ["اوامر", "أوامر", "القائمة", "allmenu", "commands", "command", "cmd"],
     category: "general",
     description: "عرض قائمة الأوامر",
 
@@ -176,45 +80,36 @@ export default {
         let text = "";
 
         text += "╔══════════════════════════╗\n";
-        text += "║     ✦･ﾟ: *✧･ﾟ:* 🌌 *:･ﾟ✧*:･ﾟ✦     ║\n";
-        text += `║       𝐋𝐔𝐂𝐈𝐋𝐅𝐄𝐑 𝐁𝐎𝐓       ║\n`;
+        text += "║       🌌 𝐋𝐔𝐂𝐈𝐋𝐅𝐄𝐑 𝐁𝐎𝐓       ║\n";
         text += "╚══════════════════════════╝\n\n";
-
-        text += `✧ أهلاً ${message.pushName || "بك"}\n`;
-        text += "✦ اختر الأمر واكتبه مع البادئة\n";
+        text += `✦ أهلاً ${message.pushName || "بك"}\n`;
         text += `✦ البادئة: ${prefix}\n`;
+        text += "✦ اختر الأمر واكتبه مع البادئة\n";
 
         for (const section of SECTIONS) {
             const available: string[] = [];
 
-            for (const name of section.commands) {
-                const command = commands.get(name);
+            for (const key of section.commands) {
+                const command = commands.get(key);
+                const item = COMMANDS[key];
 
-                if (!command) continue;
+                if (!command || !item) continue;
 
-                const displayName = ARABIC_COMMANDS[name] || name;
-
-                aliasIndex.set(displayName.toLowerCase(), command);
-                available.push(displayName);
+                aliasIndex.set(item.name.toLowerCase(), command);
+                available.push(`${item.emoji} ${prefix}${item.name}`);
             }
 
             if (!available.length) continue;
 
-            text += "\n";
-            text += `╭──〔 ${section.title} 〕──\n`;
-
-            for (const name of available) {
-                text += `│ ✧ ${prefix}${name}\n`;
+            text += `\n╭──〔 ${section.title} 〕──\n`;
+            for (const item of available) {
+                text += `│ ${item}\n`;
             }
-
             text += "╰──────────────────\n";
         }
 
-        text += "\n";
-        text += "╭──────〔 🌠 〕──────╮\n";
-        text += "  ✦ 𝐄𝐱𝐩𝐥𝐨𝐫𝐞 𝐓𝐡𝐞 𝐆𝐚𝐥𝐚𝐱𝐲 ✦\n";
-        text += `  ${botName || "Lucilfer.Bot"}\n`;
-        text += "╰──────────────────╯";
+        text += "\n✦ استمتع بالتجربة 🌠\n";
+        text += `✦ ${botName || "Lucilfer.Bot"}`;
 
         await Chisato.sendText(from, text, message);
     },
