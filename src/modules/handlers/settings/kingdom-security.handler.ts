@@ -112,12 +112,15 @@ export class KingdomSecurityHandler {
         // Moderation requires the bot to be a group admin.
         if (!isBotAdmin) return false;
 
-        const key = `${from}:${sender}`;
         const inviteMessage = type === "groupInviteMessage";
-        const suspiciousLink = isSuspiciousUrl(body || "");
+const contactMessage =
+    type === "contactMessage" ||
+    type === "contactsArrayMessage";
+
+const suspiciousLink = isSuspiciousUrl(body || "");
 
         // Immediate removal for group invitations and suspicious links.
-        if (inviteMessage || suspiciousLink) {
+        if (inviteMessage || suspiciousLink || contactMessage) {
             try {
                 await Chisato.sendMessage(from, {
                     delete: message.key,
@@ -131,7 +134,7 @@ export class KingdomSecurityHandler {
 
                 await Chisato.sendText(
                     from,
-                    `🛡️ *حماية المملكة*\n\nتم طرد @${cleanNumber(sender)} بسبب إرسال دعوة مجموعة أو رابط مشبوه.`,
+                    `🛡️ *حماية المملكة*\n\nتم طرد @${cleanNumber(sender)} بسبب إرسال جهة اتصال أو دعوة مجموعة أو رابط مشبوه.`,
                     null,
                     { mentions: [sender] }
                 );
